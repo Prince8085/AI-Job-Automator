@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI Job Automator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              primary: 'var(--primary-color, #4f46e5)',
+              secondary: 'var(--secondary-color, #10b981)',
+              background: 'var(--background-color, #f8fafc)',
+              'text-primary': 'var(--text-primary-color, #1f2937)',
+              'text-secondary': 'var(--text-secondary-color, #6b7280)',
+            },
+            animation: {
+              'spin-slow': 'spin 3s linear infinite',
+              'pulse-fast': 'pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+              lift: 'lift 0.3s ease-out forwards',
+            },
+            keyframes: {
+                lift: {
+                    '0%': { transform: 'translateY(0)', boxShadow: 'var(--tw-shadow)' },
+                    '100%': { transform: 'translateY(-4px)', boxShadow: 'var(--tw-shadow-lg)' },
+                }
+            },
+            backgroundImage: {
+              'gradient-primary': 'linear-gradient(to right, var(--primary-color), #6366f1)',
+              'gradient-secondary': 'linear-gradient(to right, var(--secondary-color), #34d399)',
+            }
+          }
+        }
+      }
+    </script>
+    <style>
+      :root {
+        --primary-color: #4f46e5;
+        --secondary-color: #10b981;
+        --background-color: #f8fafc;
+        --text-primary-color: #1f2937;
+        --text-secondary-color: #6b7280;
+      }
+      body {
+        background-color: var(--background-color);
+        color: var(--text-primary-color);
+        font-family: 'Inter', sans-serif;
+      }
+      @import url('https://rsms.me/inter/inter.css');
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react/": "https://esm.sh/react@^19.1.0/",
+    "react": "https://esm.sh/react@^19.1.0",
+    "react-dom/": "https://esm.sh/react-dom@^19.1.0/",
+    "@google/genai": "https://esm.sh/@google/genai@^1.10.0",
+    "recharts": "https://esm.sh/recharts@^3.1.0",
+    "react-router-dom": "https://esm.sh/react-router-dom@^7.7.0",
+    "jspdf": "https://esm.sh/jspdf@^2.5.1",
+    "jspdf-autotable": "https://esm.sh/jspdf-autotable@^5.0.2"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+  <body>
+    <noscript>You need to enable JavaScript to run this app.</noscript>
+    <div id="root"></div>
+  <script type="module" src="/index.tsx"></script>
+</body>
+</html>

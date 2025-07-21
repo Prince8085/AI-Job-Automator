@@ -1,0 +1,9 @@
+
+{
+  "name": "AI Job Automator",
+  "description": "A comprehensive application to automate and streamline your job search process using AI. Features include AI-powered resume tailoring, cover letter generation, application tracking, and interview preparation.",
+  "requestFramePermissions": [
+    "microphone",
+    "camera"
+  ]
+}

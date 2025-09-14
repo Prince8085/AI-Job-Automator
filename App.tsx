@@ -1,7 +1,8 @@
 
 import React from 'react';
 import { HashRouter, Routes, Route, useLocation, Navigate } from 'react-router-dom';
-import { JobProvider, useJobData } from './contexts/JobDataContext';
+import { ClerkProvider, useAuth } from '@clerk/clerk-react';
+import { JobProvider } from './contexts/JobDataContext';
 import BottomNav from './components/BottomNav';
 import Header from './components/Header';
 import ToastContainer from './components/Toast';
@@ -29,17 +30,27 @@ import EasyApplyScreen from './screens/EasyApplyScreen';
 import WishlistScreen from './screens/WishlistScreen';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { isAuthenticated } = useJobData();
-  if (!isAuthenticated) {
+  const { isSignedIn, isLoaded } = useAuth();
+  
+  if (!isLoaded) {
+    return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
+  }
+  
+  if (!isSignedIn) {
     return <Navigate to="/" replace />;
   }
+  
   return <>{children}</>;
 };
 
 const AppContent: React.FC = () => {
   const location = useLocation();
-  const { isAuthenticated } = useJobData();
-  const showHeaderAndNav = isAuthenticated && location.pathname !== '/feedback';
+  const { isSignedIn, isLoaded } = useAuth();
+  const showHeaderAndNav = isSignedIn && location.pathname !== '/feedback';
+  
+  if (!isLoaded) {
+    return <div className="flex items-center justify-center min-h-screen bg-indigo-600 text-white">Loading...</div>;
+  }
 
   return (
     <div className="bg-background min-h-screen font-sans">
@@ -78,12 +89,20 @@ const AppContent: React.FC = () => {
 };
 
 const App: React.FC = () => {
+  const clerkPubKey = (import.meta.env as any).VITE_CLERK_PUBLISHABLE_KEY;
+  
+  if (!clerkPubKey) {
+    throw new Error('Missing Clerk Publishable Key');
+  }
+  
   return (
-    <JobProvider>
-      <HashRouter>
-        <AppContent />
-      </HashRouter>
-    </JobProvider>
+    <ClerkProvider publishableKey={clerkPubKey}>
+      <JobProvider>
+        <HashRouter>
+          <AppContent />
+        </HashRouter>
+      </JobProvider>
+    </ClerkProvider>
   );
 };
 

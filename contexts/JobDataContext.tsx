@@ -5,10 +5,6 @@ import { MOCK_USER_PROFILE, MOCK_JOBS, MOCK_TRACKED_JOBS } from '../constants';
 import { searchLiveJobs } from '../services/geminiService';
 
 interface JobContextType {
-  // Auth
-  isAuthenticated: boolean;
-  login: () => void;
-  logout: () => void;
   // User Profile
   userProfile: UserProfile;
   updateUserProfile: (profile: UserProfile) => void;
@@ -39,7 +35,6 @@ interface JobContextType {
 const JobContext = createContext<JobContextType | undefined>(undefined);
 
 export const JobProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userProfile, setUserProfile] = useState<UserProfile>(MOCK_USER_PROFILE);
   const [allJobs, setAllJobs] = useState<Job[]>(MOCK_JOBS);
   const [trackedJobs, setTrackedJobs] = useState<TrackedJob[]>(MOCK_TRACKED_JOBS);
@@ -61,9 +56,7 @@ export const JobProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setIsSearching(false);
   };
   
-  const login = () => setIsAuthenticated(true);
   const logout = () => {
-    setIsAuthenticated(false);
     resetData();
   };
 
@@ -188,8 +181,6 @@ export const JobProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
 
   const value = {
-    isAuthenticated,
-    login,
     logout,
     userProfile,
     updateUserProfile,

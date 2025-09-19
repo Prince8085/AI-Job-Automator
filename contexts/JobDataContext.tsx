@@ -1,5 +1,6 @@
 
-import React, { createContext, useState, useContext, ReactNode, useCallback } from 'react';
+import React, { createContext, useState, useContext, ReactNode, useCallback, useEffect } from 'react';
+import { useAuth, useUser } from '@clerk/clerk-react';
 import { UserProfile, Job, TrackedJob, ApplicationStatus, ToastMessage } from '../types';
 import { MOCK_USER_PROFILE, MOCK_JOBS, MOCK_TRACKED_JOBS } from '../constants';
 import { searchLiveJobs } from '../services/geminiService';
@@ -35,22 +36,65 @@ interface JobContextType {
 const JobContext = createContext<JobContextType | undefined>(undefined);
 
 export const JobProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const { isSignedIn, userId } = useAuth();
+  const { user } = useUser();
+  
   const [userProfile, setUserProfile] = useState<UserProfile>(MOCK_USER_PROFILE);
   const [allJobs, setAllJobs] = useState<Job[]>(MOCK_JOBS);
-  const [trackedJobs, setTrackedJobs] = useState<TrackedJob[]>(MOCK_TRACKED_JOBS);
+  const [trackedJobs, setTrackedJobs] = useState<TrackedJob[]>([]);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
-  const [wishlistedJobs, setWishlistedJobs] = useState<Job[]>(() => MOCK_TRACKED_JOBS.filter(j => j.isWishlisted));
+  const [wishlistedJobs, setWishlistedJobs] = useState<Job[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
   
   // State for preserving live search results
   const [liveSearchResults, setLiveSearchResults] = useState<Job[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [searchError, setSearchError] = useState('');
 
+  // Load user data when authenticated
+  useEffect(() => {
+    const loadUserData = async () => {
+      if (!isSignedIn || !userId || !user) return;
+      
+      setIsLoading(true);
+      try {
+        // Mock user profile creation (replace with actual database calls when backend is ready)
+        const mockUserProfile = {
+          ...MOCK_USER_PROFILE,
+          clerkUserId: userId,
+          name: user.fullName || user.firstName || 'User',
+          email: user.primaryEmailAddress?.emailAddress || '',
+          phone: user.primaryPhoneNumber?.phoneNumber || '',
+          profilePictureUrl: user.imageUrl || '',
+        };
+        
+        setUserProfile(mockUserProfile);
+        
+        // Load mock tracked jobs for the user
+        setTrackedJobs(MOCK_TRACKED_JOBS);
+        
+        // Load mock wishlisted jobs
+        const mockWishlistedJobs = MOCK_JOBS.slice(0, 3); // First 3 jobs as wishlisted
+        setWishlistedJobs(mockWishlistedJobs);
+        
+        console.log('Mock user data loaded successfully');
+        
+      } catch (error) {
+        console.error('Error loading user data:', error);
+        showToast('Failed to load user data', 'error');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadUserData();
+  }, [isSignedIn, userId, user]);
+
   const resetData = () => {
     setUserProfile(MOCK_USER_PROFILE);
     setAllJobs(MOCK_JOBS);
-    setTrackedJobs(MOCK_TRACKED_JOBS);
-    setWishlistedJobs(MOCK_TRACKED_JOBS.filter(j => j.isWishlisted));
+    setTrackedJobs([]);
+    setWishlistedJobs([]);
     setLiveSearchResults([]);
     setSearchError('');
     setIsSearching(false);
@@ -60,8 +104,21 @@ export const JobProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     resetData();
   };
 
-  const updateUserProfile = (profile: UserProfile) => {
-    setUserProfile(profile);
+  const updateUserProfile = async (profile: UserProfile) => {
+    if (!isSignedIn || !userId) {
+      setUserProfile(profile);
+      return;
+    }
+
+    try {
+      // Mock update user profile (replace with actual database calls when backend is ready)
+      setUserProfile(profile);
+      console.log('Mock user profile updated:', profile);
+      showToast('Profile updated successfully!', 'success');
+    } catch (error) {
+      console.error('Error updating user profile:', error);
+      showToast('Failed to update profile', 'error');
+    }
   };
 
   const getJobById = useCallback((id: string): Job | TrackedJob | undefined => {
@@ -75,28 +132,82 @@ export const JobProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     return allJobs.find(j => j.id === id);
   }, [allJobs, trackedJobs, wishlistedJobs, liveSearchResults]);
 
-  const trackJob = (job: Job) => {
-    if (!trackedJobs.some(t => t.id === job.id)) {
+  const trackJob = async (job: Job) => {
+    if (!isSignedIn || !userId) {
+      // Fallback to local state for non-authenticated users
+      if (!trackedJobs.some(t => t.id === job.id)) {
+        const newTrackedJob: TrackedJob = { ...job, status: ApplicationStatus.SAVED, notes: '' };
+        setTrackedJobs(prev => [newTrackedJob, ...prev]);
+        showToast('Job saved to tracker!', 'success');
+      }
+      return;
+    }
+
+    if (trackedJobs.some(t => t.id === job.id)) {
+      showToast('Job is already tracked!', 'info');
+      return;
+    }
+
+    try {
+      // Mock job tracking (replace with actual database calls when backend is ready)
       const newTrackedJob: TrackedJob = { ...job, status: ApplicationStatus.SAVED, notes: '' };
       setTrackedJobs(prev => [newTrackedJob, ...prev]);
+      console.log('Mock job tracked:', newTrackedJob);
       showToast('Job saved to tracker!', 'success');
+    } catch (error) {
+      console.error('Error tracking job:', error);
+      showToast('Failed to save job', 'error');
     }
   };
 
-  const updateJobStatus = (jobId: string, status: ApplicationStatus) => {
-    setTrackedJobs(prev =>
-      prev.map(job =>
-        job.id === jobId ? { ...job, status } : job
-      )
-    );
+  const updateJobStatus = async (jobId: string, status: ApplicationStatus) => {
+    if (!isSignedIn || !userId) {
+      // Fallback to local state for non-authenticated users
+      setTrackedJobs(prev =>
+        prev.map(job =>
+          job.id === jobId ? { ...job, status } : job
+        )
+      );
+      return;
+    }
+
+    try {
+      // Mock update job status (replace with actual database calls when backend is ready)
+      setTrackedJobs(prev =>
+        prev.map(job =>
+          job.id === jobId ? { ...job, status } : job
+        )
+      );
+      console.log('Mock job status updated:', { jobId, status });
+    } catch (error) {
+      console.error('Error updating job status:', error);
+      showToast('Failed to update job status', 'error');
+    }
   };
 
-  const saveTrackedJobData = (jobId: string, data: Partial<Omit<TrackedJob, 'id'>>) => {
-    setTrackedJobs(prev =>
-      prev.map(job =>
-        job.id === jobId ? { ...job, ...data } : job
-      )
-    );
+  const saveTrackedJobData = async (jobId: string, data: Partial<Omit<TrackedJob, 'id'>>) => {
+    if (!isSignedIn || !userId) {
+      // Fallback to local state for non-authenticated users
+      setTrackedJobs(prev =>
+        prev.map(job =>
+          job.id === jobId ? { ...job, ...data } : job
+        )
+      );
+      return;
+    }
+
+    try {
+      // Mock save tracked job data (replace with actual database calls when backend is ready)
+      setTrackedJobs(prev =>
+        prev.map(job =>
+          job.id === jobId ? { ...job, ...data } : job
+        )
+      );
+      console.log('Mock tracked job data saved:', { jobId, data });
+    } catch (error) {
+      console.error('Error saving tracked job data:', error);
+      showToast('Failed to save job data', 'error');
+    }
   };
 
   const showToast = useCallback((message: string, type: ToastMessage['type'] = 'info') => {
@@ -115,40 +226,84 @@ export const JobProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     return wishlistedJobs.some(job => job.id === jobId);
   }, [wishlistedJobs]);
 
-  const toggleWishlist = useCallback((job: Job) => {
+  const toggleWishlist = useCallback(async (job: Job) => {
     const isCurrentlyWishlisted = isJobWishlisted(job.id);
-
-    // Update wishlistedJobs state
-    setWishlistedJobs(prev => {
-        if (isCurrentlyWishlisted) {
-            showToast('Removed from wishlist', 'info');
-            return prev.filter(wJob => wJob.id !== job.id);
-        } else {
-            showToast('Added to wishlist', 'success');
-            return [...prev, { ...job, isWishlisted: true }];
-        }
-    });
-
-    // Also update the job in liveSearchResults if it exists there
-    setLiveSearchResults(prev => prev.map(liveJob => 
-      liveJob.id === job.id ? { ...liveJob, isWishlisted: !isCurrentlyWishlisted } : liveJob
-    ));
     
-  }, [showToast, isJobWishlisted]);
+    if (!isSignedIn || !userId) {
+      // Fallback to local state for non-authenticated users
+      setWishlistedJobs(prev => {
+          if (isCurrentlyWishlisted) {
+              showToast('Removed from wishlist', 'info');
+              return prev.filter(wJob => wJob.id !== job.id);
+          } else {
+              showToast('Added to wishlist!', 'success');
+              return [...prev, { ...job, isWishlisted: true }];
+          }
+      });
+      
+      // Also update the job in liveSearchResults if it exists there
+      setLiveSearchResults(prev => prev.map(liveJob => 
+        liveJob.id === job.id ? { ...liveJob, isWishlisted: !isCurrentlyWishlisted } : liveJob
+      ));
+      return;
+    }
 
-  const addAllToWishlist = useCallback((jobs: Job[]) => {
-    setWishlistedJobs(prev => {
-      const newJobs = jobs.filter(job => !prev.some(wJob => wJob.id === job.id));
-      if (newJobs.length > 0) {
-        showToast(`Added ${newJobs.length} jobs to wishlist!`, 'success');
-        return [...prev, ...newJobs.map(j => ({...j, isWishlisted: true}))];
+    try {
+      // Mock wishlist toggle (replace with actual database calls when backend is ready)
+      if (isCurrentlyWishlisted) {
+        setWishlistedJobs(prev => prev.filter(w => w.id !== job.id));
+        showToast('Removed from wishlist', 'info');
+        console.log('Mock job removed from wishlist:', job.id);
+      } else {
+        setWishlistedJobs(prev => [...prev, { ...job, isWishlisted: true }]);
+        showToast('Added to wishlist!', 'success');
+        console.log('Mock job added to wishlist:', job.id);
       }
-      showToast('All jobs are already in your wishlist.', 'info');
-      return prev;
-    });
+      
+      // Also update the job in liveSearchResults if it exists there
+      setLiveSearchResults(prev => prev.map(liveJob => 
+        liveJob.id === job.id ? { ...liveJob, isWishlisted: !isCurrentlyWishlisted } : liveJob
+      ));
+    } catch (error) {
+      console.error('Error toggling wishlist:', error);
+      showToast('Failed to update wishlist', 'error');
+    }
+  }, [showToast, isJobWishlisted, isSignedIn, userId, userProfile.id]);
+
+  const addAllToWishlist = useCallback(async (jobs: Job[]) => {
+    const newWishlistedJobs = jobs.filter(job => !isJobWishlisted(job.id));
+    
+    if (newWishlistedJobs.length === 0) {
+      showToast('All jobs are already in wishlist', 'info');
+      return;
+    }
+
+    if (!isSignedIn || !userId) {
+      // Fallback to local state for non-authenticated users
+      setWishlistedJobs(prev => [
+        ...prev,
+        ...newWishlistedJobs.map(job => ({ ...job, isWishlisted: true }))
+      ]);
+      showToast(`Added ${newWishlistedJobs.length} jobs to wishlist!`, 'success');
+      return;
+    }
+
+    try {
+      // Mock add all to wishlist (replace with actual database calls when backend is ready)
+      setWishlistedJobs(prev => [
+        ...prev,
+        ...newWishlistedJobs.map(job => ({ ...job, isWishlisted: true }))
+      ]);
+
+      console.log('Mock jobs added to wishlist:', newWishlistedJobs.map(j => j.id));
+      showToast(`Added ${newWishlistedJobs.length} jobs to wishlist!`, 'success');
+    } catch (error) {
+      console.error('Error adding jobs to wishlist:', error);
+      showToast('Failed to add jobs to wishlist', 'error');
+    }
 
     setLiveSearchResults(prev => prev.map(liveJob => ({...liveJob, isWishlisted: true})));
-  }, [showToast]);
+  }, [isJobWishlisted, showToast, isSignedIn, userId, userProfile.id]);
 
   // Live search logic moved to context
   const performLiveSearch = async (searchTerm: string, location: string) => {

@@ -1,12 +1,13 @@
 
 import { GoogleGenAI, GenerateContentResponse, Type, Part } from "@google/genai";
 import { UserProfile, Job, CategorizedQuestions, SkillAnalysis, InterviewFeedback, CompanyBriefing, OfferDetails, NegotiationAnalysis, PotentialContact, StructuredResume, ApplicationInsights, TrackedJob, CareerPathPlan, ParsedApplicationForm } from '../types';
+import { jobScrapingService } from './jobScrapingService';
 
-const API_KEY = process.env.API_KEY;
+const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 if (!API_KEY) {
   // This is a fallback for development environments where the key might not be set.
   // In a real production deployment, this check might be more robust.
-  console.warn("API_KEY environment variable not set. Using a placeholder. AI features will not work.");
+  console.warn("VITE_GEMINI_API_KEY environment variable not set. Using a placeholder. AI features will not work.");
 }
 
 const ai = new GoogleGenAI({ apiKey: API_KEY || " " });
@@ -35,7 +36,30 @@ const parseJsonResponse = (text: string): any => {
 }
 
 export const searchLiveJobs = async (searchTerm: string, location: string): Promise<Job[]> => {
+    // First, try to get jobs using job scraping service (more reliable)
     try {
+        console.log(`Searching for jobs: ${searchTerm} in ${location}`);
+        
+        // Use job scraping service as primary method
+        const scrapedJobs = await jobScrapingService.scrapeJobs(searchTerm, location);
+        
+        if (scrapedJobs && scrapedJobs.length > 0) {
+            console.log(`Found ${scrapedJobs.length} jobs from scraping service`);
+            return scrapedJobs;
+        }
+        
+        console.log("No jobs found from scraping service, trying AI search...");
+        
+    } catch (scrapingError) {
+        console.warn("Job scraping service failed:", scrapingError);
+    }
+
+    // Fallback to AI search if scraping fails or returns no results
+    try {
+        if (!API_KEY || API_KEY.trim() === "" || API_KEY === " ") {
+            throw new Error("Gemini API key is not configured properly");
+        }
+
         const prompt = `
             You are an expert job search aggregator. Your task is to act as a powerful job board API.
             Use your search capabilities to find 5 REAL, currently open job postings based on the user's query.
@@ -47,7 +71,7 @@ export const searchLiveJobs = async (searchTerm: string, location: string): Prom
             2.  For each job found, extract the required information and the direct URL to the original posting. This is the most important step.
             3.  Provide a detailed description. If the source has a short description, try to find and use a more detailed one.
             4.  If a salary is not explicitly mentioned, state "Not specified". Do not invent a salary.
-            5.  Generate a unique ID for each job (e.g., "live-1", "live-2").
+            5.  Generate a unique ID for each job (e.g., "ai-1", "ai-2").
             6.  Return ONLY a JSON array of these job objects. Do not add any introductory text, explanations, or markdown formatting.
 
             The JSON format for each job object must be:
@@ -73,8 +97,8 @@ export const searchLiveJobs = async (searchTerm: string, location: string): Prom
         });
 
         if (!response.text) {
-            console.warn("AI response text is empty for searchLiveJobs. Returning empty array.");
-            return [];
+            console.warn("AI response text is empty for searchLiveJobs.");
+            throw new Error("AI returned empty response");
         }
         
         const jobs = parseJsonResponse(response.text);
@@ -83,8 +107,8 @@ export const searchLiveJobs = async (searchTerm: string, location: string): Prom
             throw new Error("AI returned an unexpected format for job listings.");
         }
 
-        return jobs.map((job: any, index: number) => ({
-            id: job.id || `live-${index}-${Date.now()}`,
+        const processedJobs = jobs.map((job: any, index: number) => ({
+            id: job.id || `ai-${index}-${Date.now()}`,
             title: job.title || "No title provided",
             company: job.company || "No company provided",
             location: job.location || "No location provided",
@@ -95,10 +119,44 @@ export const searchLiveJobs = async (searchTerm: string, location: string): Prom
             sourceUrl: job.sourceUrl || undefined,
         }));
 
-    } catch (error) {
-        console.error("Error searching live jobs with Google Search:", error);
-        throw new Error("Could not fetch live job listings from AI. The AI may have had trouble finding real jobs for this query.");
+        console.log(`Found ${processedJobs.length} jobs from AI search`);
+        return processedJobs;
+
+    } catch (aiError) {
+        console.error("Error searching live jobs with AI:", aiError);
+        
+        // Final fallback: return demo jobs with clear indication
+        console.log("Both scraping and AI search failed, returning demo jobs");
+        return generateDemoJobs(searchTerm, location);
     }
+};
+
+// Generate demo jobs when all other methods fail
+const generateDemoJobs = (searchTerm: string, location: string): Job[] => {
+    return [
+        {
+            id: `demo-1-${Date.now()}`,
+            title: `${searchTerm} - Demo Position`,
+            company: "Demo Company",
+            location: location || "Remote",
+            description: `This is a demo job listing for ${searchTerm}. In a real scenario, this would be fetched from actual job boards. The job scraping service and AI search are currently unavailable.`,
+            tags: ["Demo", "Example", "Not Real"],
+            salary: "Demo Salary",
+            postedDate: "Demo Date",
+            sourceUrl: "https://example.com/demo-job"
+        },
+        {
+            id: `demo-2-${Date.now()}`,
+            title: `Senior ${searchTerm} - Demo`,
+            company: "Example Corp",
+            location: location || "Remote",
+            description: `Another demo job listing. This demonstrates the fallback functionality when real job data cannot be retrieved.`,
+            tags: ["Demo", "Senior Level", "Example"],
+            salary: "Demo Range",
+            postedDate: "Demo Date",
+            sourceUrl: "https://example.com/demo-job-2"
+        }
+    ];
 };
 
 export const parseJobFromTextAndImage = async (text?: string, image?: {mimeType: string, data: string}): Promise<Job> => {

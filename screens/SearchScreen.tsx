@@ -8,6 +8,15 @@ import { Job } from '../types';
 import { SearchIcon, SparklesIcon, HeartIcon } from '../components/icons';
 import JobCardSkeleton from '../components/JobCardSkeleton';
 
+// Time filter options
+enum TimeFilter {
+  ANY_TIME = 'any_time',
+  LAST_HOUR = 'last_hour',
+  LAST_24_HOURS = 'last_24_hours',
+  LAST_WEEK = 'last_week',
+  LAST_MONTH = 'last_month'
+}
+
 const SearchScreen: React.FC = () => {
   const navigate = useNavigate();
   const { 
@@ -22,6 +31,7 @@ const SearchScreen: React.FC = () => {
   
   const [searchTerm, setSearchTerm] = useState('');
   const [location, setLocation] = useState('');
+  const [timeFilter, setTimeFilter] = useState<TimeFilter>(TimeFilter.ANY_TIME);
 
   useEffect(() => {
     // This effect ensures that if the component unmounts,
@@ -73,6 +83,21 @@ const SearchScreen: React.FC = () => {
               aria-label="Search by location"
             />
              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-text-secondary"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+          </div>
+          <div className="relative mt-3">
+            <select
+              value={timeFilter}
+              onChange={(e) => setTimeFilter(e.target.value as TimeFilter)}
+              className="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent bg-white"
+              aria-label="Filter by posting time"
+            >
+              <option value={TimeFilter.ANY_TIME}>Any time</option>
+              <option value={TimeFilter.LAST_HOUR}>Last hour</option>
+              <option value={TimeFilter.LAST_24_HOURS}>Last 24 hours</option>
+              <option value={TimeFilter.LAST_WEEK}>Last week</option>
+              <option value={TimeFilter.LAST_MONTH}>Last month</option>
+            </select>
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-text-secondary"><circle cx="12" cy="12" r="3"/><path d="M12 1v6m0 6v6"/></svg>
           </div>
           <button
             onClick={handleLiveSearch}

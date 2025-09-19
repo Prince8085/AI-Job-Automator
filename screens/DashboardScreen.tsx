@@ -6,7 +6,7 @@ import ScreenWrapper from '../components/ScreenWrapper';
 import StatCard from '../components/StatCard';
 import JobCard from '../components/JobCard';
 import { ApplicationStatus } from '../types';
-import { BriefcaseIcon, FileTextIcon, MailIcon, ClipboardDocumentCheckIcon, SparklesIcon, TrophyIcon, RouteIcon } from '../components/icons';
+import { BriefcaseIcon, FileTextIcon, MailIcon, ClipboardDocumentCheckIcon, SparklesIcon, TrophyIcon, RouteIcon, LinkIcon } from '../components/icons';
 
 const GoalProgress: React.FC<{ label: string; current: number; goal: number; }> = ({ label, current, goal }) => {
   const progress = Math.min((current / goal) * 100, 100);
@@ -58,7 +58,7 @@ const DashboardScreen: React.FC = () => {
 
         <div className="space-y-4">
           <h3 className="text-xl font-bold text-text-primary">Quick Actions</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
              <button onClick={() => navigate('/search')} className="bg-white p-4 rounded-lg shadow-md hover:shadow-lg transition-shadow text-center flex flex-col items-center justify-center">
               <SparklesIcon className="w-8 h-8 text-primary" />
               <p className="mt-2 font-semibold">Find New Jobs</p>
@@ -67,14 +67,17 @@ const DashboardScreen: React.FC = () => {
               <RouteIcon className="w-8 h-8 text-secondary" />
               <p className="mt-2 font-semibold">Plan Your Career</p>
             </button>
-          </div>
-            <button onClick={() => navigate('/analyze-job')} className="mt-4 w-full bg-white p-4 rounded-lg shadow-md hover:shadow-lg transition-shadow text-center flex items-center justify-center">
-              <ClipboardDocumentCheckIcon className="w-8 h-8 text-indigo-500" />
-              <div className="ml-4 text-left">
-                <p className="font-semibold">Analyze Any Job Posting</p>
-                <p className="text-sm text-text-secondary">Paste text or upload an image from any source.</p>
-              </div>
+            <button onClick={() => navigate('/autofill-resume')} className="bg-white p-4 rounded-lg shadow-md hover:shadow-lg transition-shadow text-center flex flex-col items-center justify-center">
+              <LinkIcon className="w-8 h-8 text-green-500" />
+              <p className="mt-2 font-semibold">Smart Autofill</p>
+              <p className="text-xs text-text-secondary mt-1">Paste URL to autofill resume</p>
             </button>
+            <button onClick={() => navigate('/analyze-job')} className="bg-white p-4 rounded-lg shadow-md hover:shadow-lg transition-shadow text-center flex flex-col items-center justify-center">
+              <ClipboardDocumentCheckIcon className="w-8 h-8 text-indigo-500" />
+              <p className="mt-2 font-semibold">Analyze Job Posting</p>
+              <p className="text-xs text-text-secondary mt-1">Paste text or upload image</p>
+            </button>
+          </div>
         </div>
 
         <div className="space-y-4">

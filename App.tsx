@@ -28,6 +28,7 @@ import VideoMockInterviewScreen from './screens/VideoMockInterviewScreen';
 import ResumeFeedbackScreen from './screens/ResumeFeedbackScreen';
 import EasyApplyScreen from './screens/EasyApplyScreen';
 import WishlistScreen from './screens/WishlistScreen';
+import AutofillResumeScreen from './screens/AutofillResumeScreen';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isSignedIn, isLoaded } = useAuth();
@@ -80,6 +81,7 @@ const AppContent: React.FC = () => {
           <Route path="/video-mock-interview/:id" element={<ProtectedRoute><VideoMockInterviewScreen /></ProtectedRoute>} />
           <Route path="/feedback" element={<ResumeFeedbackScreen />} />
           <Route path="/easy-apply/:id" element={<ProtectedRoute><EasyApplyScreen /></ProtectedRoute>} />
+          <Route path="/autofill-resume" element={<ProtectedRoute><AutofillResumeScreen /></ProtectedRoute>} />
           <Route path="*" element={<Navigate to="/dashboard" />} />
         </Routes>
       </main>

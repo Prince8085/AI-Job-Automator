@@ -123,16 +123,23 @@ const JobDetailsScreen: React.FC = () => {
        <div className="mt-6">
          <ActionButton 
             icon={<PaperAirplaneIcon />} 
-            text="Easy Apply with AI" 
-            onClick={() => navigate(`/easy-apply/${job.id}`, { state: { jobData: job } })}
-            disabled={!job.sourceUrl}
+            text={job.sourceUrl ? "Easy Apply with AI" : "Easy Apply (No URL Available)"} 
+            onClick={() => {
+              if (job.sourceUrl) {
+                navigate(`/easy-apply/${job.id}`, { state: { jobData: job } });
+              } else {
+                // For jobs without sourceUrl, still allow access but with mock data
+                navigate(`/easy-apply/${job.id}`, { state: { jobData: { ...job, sourceUrl: 'https://example.com/mock-job-posting' } } });
+              }
+            }}
+            disabled={false}
          />
-         {!job.sourceUrl && <p className="text-xs text-center mt-1 text-text-secondary">This feature requires a direct link to the job posting.</p>}
+         {!job.sourceUrl && <p className="text-xs text-center mt-1 text-text-secondary">This will show sample application data since no direct job link is available.</p>}
       </div>
 
       <div className="mt-6">
         <h3 className="text-xl font-bold text-text-primary mb-4">AI Power-Ups ✨</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             <ActionButton icon={<FileTextIcon />} text="Tailor Resume for this Job" onClick={() => navigate(`/resume/${job.id}`, { state: { jobData: job } })} />
             <ActionButton icon={<MailIcon />} text="Generate Cover Letter" onClick={() => navigate(`/cover-letter/${job.id}`, { state: { jobData: job } })} />
             <ActionButton icon={<LightbulbIcon />} text="Prepare for Interview" onClick={() => navigate(`/interview-prep/${job.id}`, { state: { jobData: job } })} />

@@ -34,8 +34,8 @@ const EasyApplyScreen: React.FC = () => {
 
     useEffect(() => {
         const jobData = location.state?.jobData || (id ? getJobById(id) : null);
-        if (!jobData || !jobData.sourceUrl) {
-            setError('A job with a valid source URL is required for this feature.');
+        if (!jobData) {
+            setError('Job data is required for this feature.');
             setIsLoading(false);
             return;
         }
@@ -46,8 +46,39 @@ const EasyApplyScreen: React.FC = () => {
                 const result = await analyzeApplicationForm(jobData, userProfile);
                 setFormData(result);
             } catch (err: any) {
-                setError(err.message || 'An unexpected error occurred.');
-                showToast(err.message || 'Error analyzing form.', 'error');
+                console.warn('AI service failed, using mock data:', err.message);
+                // Fallback to mock data when AI service fails
+                const mockFormData: ParsedApplicationForm = {
+                    basicInfo: [
+                        { id: 'name', label: 'Full Name', type: 'text', value: userProfile.name },
+                        { id: 'email', label: 'Email Address', type: 'text', value: userProfile.email },
+                        { id: 'phone', label: 'Phone Number', type: 'text', value: userProfile.phone },
+                        { id: 'linkedin', label: 'LinkedIn Profile', type: 'text', value: userProfile.linkedinUrl || 'Not provided' },
+                        { id: 'resume', label: 'Resume Upload', type: 'file', value: 'Your tailored resume will be uploaded' }
+                    ],
+                    customQuestions: [
+                        {
+                            id: 'why-company',
+                            label: 'Why do you want to work at this company?',
+                            type: 'textarea',
+                            value: `I am excited about the opportunity to work at ${jobData.company} because of your reputation for innovation and excellence in the industry. The ${jobData.title} position aligns perfectly with my skills and career goals, and I believe I can contribute meaningfully to your team's success.`
+                        },
+                        {
+                            id: 'experience',
+                            label: 'Tell us about your relevant experience',
+                            type: 'textarea',
+                            value: `Based on my background and experience outlined in my resume, I have developed strong skills that directly apply to this ${jobData.title} role. I am passionate about leveraging my expertise to drive results and contribute to ${jobData.company}'s continued growth.`
+                        },
+                        {
+                            id: 'salary',
+                            label: 'Salary Expectations',
+                            type: 'text',
+                            value: 'Competitive salary based on market standards and experience level'
+                        }
+                    ]
+                };
+                setFormData(mockFormData);
+                showToast('Using sample application data. AI analysis unavailable.', 'info');
             } finally {
                 setIsLoading(false);
             }
@@ -57,8 +88,10 @@ const EasyApplyScreen: React.FC = () => {
     }, [id, location.state, getJobById, userProfile, showToast]);
 
     const handleGoToApplication = () => {
-        if (job?.sourceUrl) {
+        if (job?.sourceUrl && !job.sourceUrl.includes('example.com')) {
             window.open(job.sourceUrl, '_blank');
+        } else {
+            showToast('This is a demo job. In a real scenario, this would open the actual job posting.', 'info');
         }
     };
 
@@ -133,7 +166,9 @@ const EasyApplyScreen: React.FC = () => {
                         className="w-full flex items-center justify-center py-3 px-6 text-white font-bold bg-gradient-primary rounded-lg hover:opacity-90 transition"
                     >
                         <ArrowUpRightIcon className="w-5 h-5 mr-2" />
-                        Go to Application to Submit
+                        {job?.sourceUrl && !job.sourceUrl.includes('example.com') 
+                            ? 'Go to Application to Submit' 
+                            : 'View Demo (No Real URL)'}
                     </button>
                     <button
                         onClick={handleMarkAsApplied}

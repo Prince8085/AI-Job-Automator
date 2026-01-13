@@ -1,15 +1,22 @@
 
 export interface UserProfile {
+  id: string;
+  clerkUserId: string;
   name: string;
   email: string;
-  phone: string;
-  bio: string;
-  baseResume: string;
+  phone?: string;
+  bio?: string;
+  baseResume?: string;
   profilePictureUrl?: string;
   coverPhotoUrl?: string;
   linkedinUrl?: string;
   githubUrl?: string;
   portfolioUrl?: string;
+  location?: string;
+  experience?: any[];
+  skills?: string[];
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export interface Job {

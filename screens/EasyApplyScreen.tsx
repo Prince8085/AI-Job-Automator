@@ -2,35 +2,24 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import { useJobData } from '../contexts/JobDataContext';
-import { analyzeApplicationForm } from '../services/geminiService';
 import ScreenWrapper from '../components/ScreenWrapper';
 import LoadingSpinner from '../components/LoadingSpinner';
-import { Job, ParsedApplicationForm, ApplicationStatus, TrackedJob } from '../types';
-import { ArrowUpRightIcon, CheckIcon, UserIcon, FileTextIcon, SparklesIcon } from '../components/icons';
-
-const FormField: React.FC<{ label: string, value: string, type: string }> = ({ label, value, type }) => {
-    return (
-        <div>
-            <label className="block text-sm font-medium text-text-secondary">{label}</label>
-            {type === 'textarea' ? (
-                <p className="mt-1 block w-full px-3 py-2 bg-slate-100 border border-slate-200 rounded-md shadow-sm whitespace-pre-wrap">{value}</p>
-            ) : (
-                <p className="mt-1 block w-full px-3 py-2 bg-slate-100 border border-slate-200 rounded-md shadow-sm">{value}</p>
-            )}
-        </div>
-    );
-};
+import { Job, ApplicationStatus, TrackedJob } from '../types';
+import { CheckIcon, CopyIcon, FileTextIcon, SparklesIcon, AlertTriangleIcon, ExternalLinkIcon } from '../components/icons';
+import { generateCoverLetter } from '../services/geminiService';
 
 const EasyApplyScreen: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const location = useLocation();
     const navigate = useNavigate();
-    const { getJobById, userProfile, showToast, updateJobStatus } = useJobData();
+    const { getJobById, userProfile, showToast, updateJobStatus, trackJob } = useJobData();
 
     const [job, setJob] = useState<Job | TrackedJob | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState('');
-    const [formData, setFormData] = useState<ParsedApplicationForm | null>(null);
+    const [coverLetter, setCoverLetter] = useState('');
+    const [isGeneratingCoverLetter, setIsGeneratingCoverLetter] = useState(false);
+    const [copied, setCopied] = useState<string | null>(null);
 
     useEffect(() => {
         const jobData = location.state?.jobData || (id ? getJobById(id) : null);
@@ -40,71 +29,60 @@ const EasyApplyScreen: React.FC = () => {
             return;
         }
         setJob(jobData);
+        setIsLoading(false);
+    }, [id, location.state, getJobById]);
 
-        const fetchFormData = async () => {
-            try {
-                const result = await analyzeApplicationForm(jobData, userProfile);
-                setFormData(result);
-            } catch (err: any) {
-                console.warn('AI service failed, using mock data:', err.message);
-                // Fallback to mock data when AI service fails
-                const mockFormData: ParsedApplicationForm = {
-                    basicInfo: [
-                        { id: 'name', label: 'Full Name', type: 'text', value: userProfile.name },
-                        { id: 'email', label: 'Email Address', type: 'text', value: userProfile.email },
-                        { id: 'phone', label: 'Phone Number', type: 'text', value: userProfile.phone },
-                        { id: 'linkedin', label: 'LinkedIn Profile', type: 'text', value: userProfile.linkedinUrl || 'Not provided' },
-                        { id: 'resume', label: 'Resume Upload', type: 'file', value: 'Your tailored resume will be uploaded' }
-                    ],
-                    customQuestions: [
-                        {
-                            id: 'why-company',
-                            label: 'Why do you want to work at this company?',
-                            type: 'textarea',
-                            value: `I am excited about the opportunity to work at ${jobData.company} because of your reputation for innovation and excellence in the industry. The ${jobData.title} position aligns perfectly with my skills and career goals, and I believe I can contribute meaningfully to your team's success.`
-                        },
-                        {
-                            id: 'experience',
-                            label: 'Tell us about your relevant experience',
-                            type: 'textarea',
-                            value: `Based on my background and experience outlined in my resume, I have developed strong skills that directly apply to this ${jobData.title} role. I am passionate about leveraging my expertise to drive results and contribute to ${jobData.company}'s continued growth.`
-                        },
-                        {
-                            id: 'salary',
-                            label: 'Salary Expectations',
-                            type: 'text',
-                            value: 'Competitive salary based on market standards and experience level'
-                        }
-                    ]
-                };
-                setFormData(mockFormData);
-                showToast('Using sample application data. AI analysis unavailable.', 'info');
-            } finally {
-                setIsLoading(false);
-            }
-        };
+    const handleGenerateCoverLetter = async () => {
+        if (!job) return;
 
-        fetchFormData();
-    }, [id, location.state, getJobById, userProfile, showToast]);
-
-    const handleGoToApplication = () => {
-        if (job?.sourceUrl && !job.sourceUrl.includes('example.com')) {
-            window.open(job.sourceUrl, '_blank');
-        } else {
-            showToast('This is a demo job. In a real scenario, this would open the actual job posting.', 'info');
+        setIsGeneratingCoverLetter(true);
+        try {
+            const letter = await generateCoverLetter(userProfile, job);
+            setCoverLetter(letter);
+            showToast('Cover letter generated!', 'success');
+        } catch (err: any) {
+            showToast('Failed to generate cover letter', 'error');
+            console.error(err);
+        } finally {
+            setIsGeneratingCoverLetter(false);
         }
     };
 
-    const handleMarkAsApplied = () => {
+    const copyToClipboard = (text: string, field: string) => {
+        navigator.clipboard.writeText(text);
+        setCopied(field);
+        showToast(`${field} copied to clipboard!`, 'success');
+        setTimeout(() => setCopied(null), 2000);
+    };
+
+    const handleOpenApplication = () => {
+        if (job?.sourceUrl && !job.sourceUrl.includes('example.com') && !job.sourceUrl.includes('rapidapi.com')) {
+            window.open(job.sourceUrl, '_blank');
+        } else {
+            showToast('No application URL available for this job', 'info');
+        }
+    };
+
+    const handleTrackAndApply = () => {
         if (job) {
+            // First track the job if not already tracked
+            const existingJob = getJobById(job.id);
+            if (!existingJob || !('status' in existingJob)) {
+                trackJob(job);
+            }
+            // Then update status to Applied
             updateJobStatus(job.id, ApplicationStatus.APPLIED);
             showToast('Job marked as applied!', 'success');
             navigate('/tracker');
         }
     };
 
+    const hasValidUrl = job?.sourceUrl &&
+        !job.sourceUrl.includes('example.com') &&
+        !job.sourceUrl.includes('rapidapi.com');
+
     if (isLoading) {
-        return <ScreenWrapper><LoadingSpinner text="AI is analyzing the application form..." /></ScreenWrapper>;
+        return <ScreenWrapper><LoadingSpinner text="Loading job details..." /></ScreenWrapper>;
     }
 
     if (error) {
@@ -117,69 +95,154 @@ const EasyApplyScreen: React.FC = () => {
             </ScreenWrapper>
         );
     }
-    
-    if (!job || !formData) {
-        return <ScreenWrapper><p>Could not load application data.</p></ScreenWrapper>;
+
+    if (!job) {
+        return <ScreenWrapper><p>Could not load job data.</p></ScreenWrapper>;
     }
 
     return (
         <ScreenWrapper>
-            <div className="bg-white p-6 rounded-lg shadow-lg space-y-4">
-                <h2 className="text-2xl font-bold text-text-primary">AI Easy Apply Preview</h2>
-                <p className="text-text-secondary">AI has prepared the following information for your application to <span className="font-semibold text-primary">{job.title}</span> at <span className="font-semibold text-primary">{job.company}</span>. Review the details, then go to the site to submit.</p>
+            {/* Job Summary Card */}
+            <div className="bg-white p-6 rounded-lg shadow-lg space-y-3">
+                <h2 className="text-2xl font-bold text-text-primary">{job.title}</h2>
+                <p className="text-lg text-primary font-semibold">{job.company}</p>
+                <p className="text-text-secondary">{job.location}</p>
+                {job.salary && job.salary !== 'Not specified' && (
+                    <p className="text-green-600 font-medium">{job.salary}</p>
+                )}
             </div>
-            
-            <div className="bg-white p-6 rounded-lg shadow-lg space-y-6">
-                {/* Basic Info */}
-                <div className="space-y-4">
-                    <h3 className="text-xl font-bold text-primary flex items-center"><UserIcon className="w-5 h-5 mr-2"/>Basic Information</h3>
-                    {formData.basicInfo.map(field => (
-                        <FormField key={field.id} {...field} />
-                    ))}
-                </div>
 
-                {/* Resume Upload */}
-                <div className="p-4 bg-green-50 border border-green-200 rounded-lg flex items-center">
-                    <FileTextIcon className="w-8 h-8 text-green-600 mr-4 flex-shrink-0" />
-                    <div>
-                        <h4 className="font-semibold text-green-800">Resume Ready</h4>
-                        <p className="text-sm text-green-700">The app will use your tailored resume for the upload field.</p>
+            {/* Quick Apply Checklist */}
+            <div className="bg-white p-6 rounded-lg shadow-lg space-y-4">
+                <h3 className="text-xl font-bold text-text-primary flex items-center">
+                    <CheckIcon className="w-6 h-6 mr-2 text-green-500" />
+                    Application Checklist
+                </h3>
+
+                <div className="space-y-3">
+                    {/* Profile Info */}
+                    <div className="flex items-start justify-between p-3 bg-slate-50 rounded-lg">
+                        <div className="flex-1">
+                            <p className="font-medium text-text-primary">Your Info</p>
+                            <p className="text-sm text-text-secondary">{userProfile.name || 'Not set'}</p>
+                            <p className="text-sm text-text-secondary">{userProfile.email || 'Not set'}</p>
+                            <p className="text-sm text-text-secondary">{userProfile.phone || 'Not set'}</p>
+                        </div>
+                        <button
+                            onClick={() => copyToClipboard(`${userProfile.name}\n${userProfile.email}\n${userProfile.phone}`, 'Contact Info')}
+                            className="p-2 hover:bg-slate-200 rounded-lg transition"
+                        >
+                            <CopyIcon className={`w-5 h-5 ${copied === 'Contact Info' ? 'text-green-500' : 'text-slate-500'}`} />
+                        </button>
+                    </div>
+
+                    {/* LinkedIn */}
+                    {userProfile.linkedinUrl && (
+                        <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
+                            <div>
+                                <p className="font-medium text-text-primary">LinkedIn</p>
+                                <p className="text-sm text-text-secondary truncate max-w-xs">{userProfile.linkedinUrl}</p>
+                            </div>
+                            <button
+                                onClick={() => copyToClipboard(userProfile.linkedinUrl || '', 'LinkedIn')}
+                                className="p-2 hover:bg-slate-200 rounded-lg transition"
+                            >
+                                <CopyIcon className={`w-5 h-5 ${copied === 'LinkedIn' ? 'text-green-500' : 'text-slate-500'}`} />
+                            </button>
+                        </div>
+                    )}
+
+                    {/* Resume Status */}
+                    <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
+                        <div className="flex items-center">
+                            <FileTextIcon className="w-5 h-5 mr-3 text-primary" />
+                            <div>
+                                <p className="font-medium text-text-primary">Resume</p>
+                                <p className="text-sm text-text-secondary">
+                                    {userProfile.baseResume ? 'Ready to upload' : 'Not uploaded - add in Profile'}
+                                </p>
+                            </div>
+                        </div>
+                        {userProfile.baseResume && (
+                            <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">Ready</span>
+                        )}
                     </div>
                 </div>
+            </div>
 
-                {/* Custom Questions */}
-                {formData.customQuestions.length > 0 && (
-                     <div className="space-y-4">
-                        <h3 className="text-xl font-bold text-primary flex items-center"><SparklesIcon className="w-5 h-5 mr-2"/>AI-Generated Answers</h3>
-                        {formData.customQuestions.map(field => (
-                            <FormField key={field.id} {...field} />
-                        ))}
+            {/* Cover Letter Generator */}
+            <div className="bg-white p-6 rounded-lg shadow-lg space-y-4">
+                <h3 className="text-xl font-bold text-text-primary flex items-center">
+                    <SparklesIcon className="w-6 h-6 mr-2 text-amber-500" />
+                    AI Cover Letter
+                </h3>
+
+                {!coverLetter ? (
+                    <button
+                        onClick={handleGenerateCoverLetter}
+                        disabled={isGeneratingCoverLetter}
+                        className="w-full py-3 px-6 text-white font-bold bg-gradient-to-r from-amber-500 to-orange-500 rounded-lg hover:opacity-90 transition disabled:opacity-50"
+                    >
+                        {isGeneratingCoverLetter ? 'Generating...' : 'Generate Cover Letter for This Job'}
+                    </button>
+                ) : (
+                    <div className="space-y-3">
+                        <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg max-h-60 overflow-y-auto">
+                            <pre className="whitespace-pre-wrap text-sm text-text-primary font-sans">{coverLetter}</pre>
+                        </div>
+                        <button
+                            onClick={() => copyToClipboard(coverLetter, 'Cover Letter')}
+                            className="w-full py-2 px-4 text-amber-700 font-medium bg-amber-100 rounded-lg hover:bg-amber-200 transition flex items-center justify-center"
+                        >
+                            <CopyIcon className="w-4 h-4 mr-2" />
+                            {copied === 'Cover Letter' ? 'Copied!' : 'Copy Cover Letter'}
+                        </button>
                     </div>
                 )}
             </div>
 
+            {/* Apply Actions */}
             <div className="bg-white p-6 rounded-lg shadow-lg space-y-4">
-                 <h3 className="text-xl font-bold text-text-primary">Next Steps</h3>
-                 <div className="grid sm:grid-cols-2 gap-4">
+                <h3 className="text-xl font-bold text-text-primary">Apply Now</h3>
+
+                {!hasValidUrl && (
+                    <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg flex items-start">
+                        <AlertTriangleIcon className="w-5 h-5 text-amber-600 mr-3 flex-shrink-0 mt-0.5" />
+                        <div>
+                            <p className="font-medium text-amber-800">No Direct Application Link</p>
+                            <p className="text-sm text-amber-700">
+                                This job doesn't have a direct application URL. Search for "{job.company} {job.title} careers" to find the application page.
+                            </p>
+                        </div>
+                    </div>
+                )}
+
+                <div className="grid sm:grid-cols-2 gap-4">
                     <button
-                        onClick={handleGoToApplication}
-                        className="w-full flex items-center justify-center py-3 px-6 text-white font-bold bg-gradient-primary rounded-lg hover:opacity-90 transition"
+                        onClick={handleOpenApplication}
+                        disabled={!hasValidUrl}
+                        className={`w-full flex items-center justify-center py-3 px-6 font-bold rounded-lg transition ${hasValidUrl
+                            ? 'text-white bg-gradient-primary hover:opacity-90'
+                            : 'text-slate-400 bg-slate-200 cursor-not-allowed'
+                            }`}
                     >
-                        <ArrowUpRightIcon className="w-5 h-5 mr-2" />
-                        {job?.sourceUrl && !job.sourceUrl.includes('example.com') 
-                            ? 'Go to Application to Submit' 
-                            : 'View Demo (No Real URL)'}
+                        <ExternalLinkIcon className="w-5 h-5 mr-2" />
+                        Open Application Page
                     </button>
+
                     <button
-                        onClick={handleMarkAsApplied}
+                        onClick={handleTrackAndApply}
                         className="w-full flex items-center justify-center py-3 px-6 text-white font-bold bg-gradient-secondary rounded-lg hover:opacity-90 transition"
                     >
                         <CheckIcon className="w-5 h-5 mr-2" />
                         Mark as Applied
                     </button>
-                 </div>
-            </div>
+                </div>
 
+                <p className="text-center text-sm text-text-secondary">
+                    After applying on the company's website, click "Mark as Applied" to track your application.
+                </p>
+            </div>
         </ScreenWrapper>
     );
 };

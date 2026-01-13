@@ -24,6 +24,9 @@ export const userProfiles = pgTable('user_profiles', {
   linkedinUrl: text('linkedin_url'),
   githubUrl: text('github_url'),
   portfolioUrl: text('portfolio_url'),
+  location: varchar('location', { length: 255 }),
+  experience: json('experience').$type<any[]>(),
+  skills: json('skills').$type<string[]>(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
@@ -37,6 +40,8 @@ export const jobs = pgTable('jobs', {
   description: text('description').notNull(),
   tags: json('tags').$type<string[]>().notNull(),
   salary: varchar('salary', { length: 100 }),
+  jobType: varchar('job_type', { length: 100 }),
+  experienceLevel: varchar('experience_level', { length: 100 }),
   postedDate: varchar('posted_date', { length: 50 }),
   sourceUrl: text('source_url'),
   createdAt: timestamp('created_at').defaultNow().notNull(),

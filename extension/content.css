@@ -1,0 +1,133 @@
+/* AI Job Automator - Content Script Styles */
+
+/* Panel styles */
+.aija-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.aija-logo {
+  font-size: 24px;
+}
+
+.aija-title {
+  font-weight: 600;
+  font-size: 14px;
+  flex: 1;
+}
+
+.aija-close {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 24px;
+  cursor: pointer;
+  opacity: 0.8;
+  transition: opacity 0.2s;
+}
+
+.aija-close:hover {
+  opacity: 1;
+}
+
+.aija-content {
+  padding: 16px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.aija-status {
+  color: #333;
+  font-size: 13px;
+  margin-bottom: 12px;
+  padding: 8px 12px;
+  background: #f8f9fa;
+  border-radius: 8px;
+}
+
+.aija-fields {
+  margin-bottom: 12px;
+}
+
+.aija-progress {
+  margin-bottom: 12px;
+}
+
+.aija-progress-bar {
+  width: 100%;
+  height: 8px;
+  background: #e0e0e0;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.aija-progress-fill {
+  height: 100%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  width: 0%;
+  transition: width 0.3s;
+  border-radius: 4px;
+}
+
+.aija-actions {
+  padding: 16px;
+  display: flex;
+  gap: 8px;
+  border-top: 1px solid #eee;
+}
+
+.aija-btn {
+  flex: 1;
+  padding: 12px;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.aija-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.aija-btn-scan {
+  background: #f0f0f0;
+  color: #333;
+}
+
+.aija-btn-scan:hover:not(:disabled) {
+  background: #e0e0e0;
+}
+
+.aija-btn-fill {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.aija-btn-fill:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+/* Floating button animation */
+@keyframes aija-pulse {
+  0% {
+    box-shadow: 0 4px 20px rgba(102, 126, 234, 0.4);
+  }
+  50% {
+    box-shadow: 0 4px 30px rgba(102, 126, 234, 0.6);
+  }
+  100% {
+    box-shadow: 0 4px 20px rgba(102, 126, 234, 0.4);
+  }
+}
+
+#ai-job-automator-btn {
+  animation: aija-pulse 2s infinite;
+}

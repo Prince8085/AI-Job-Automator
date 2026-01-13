@@ -5,9 +5,9 @@ import { jobScrapingService } from './jobScrapingService';
 
 const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 if (!API_KEY) {
-  // This is a fallback for development environments where the key might not be set.
-  // In a real production deployment, this check might be more robust.
-  console.warn("VITE_GEMINI_API_KEY environment variable not set. Using a placeholder. AI features will not work.");
+    // This is a fallback for development environments where the key might not be set.
+    // In a real production deployment, this check might be more robust.
+    console.warn("VITE_GEMINI_API_KEY environment variable not set. Using a placeholder. AI features will not work.");
 }
 
 const ai = new GoogleGenAI({ apiKey: API_KEY || " " });
@@ -23,7 +23,7 @@ const parseJsonResponse = (text: string): any => {
         try {
             return JSON.parse(jsonMatch[2]);
         } catch (e) {
-             console.error("Failed to parse JSON from code block:", jsonMatch[2]);
+            console.error("Failed to parse JSON from code block:", jsonMatch[2]);
         }
     }
     // Fallback if no code block is found, assume the whole text is JSON.
@@ -35,21 +35,32 @@ const parseJsonResponse = (text: string): any => {
     }
 }
 
-export const searchLiveJobs = async (searchTerm: string, location: string): Promise<Job[]> => {
-    // First, try to get jobs using job scraping service (more reliable)
+export const searchLiveJobs = async (searchTerm: string, location: string, timeFilter: string = 'any'): Promise<Job[]> => {
+    // Map UI time filter to service time filter
+    const timeFilterMap: Record<string, string> = {
+        'any_time': 'any',
+        'last_hour': '1h',
+        'last_24_hours': '24h',
+        'last_week': '7d',
+        'last_month': '30d',
+        'any': 'any'
+    };
+    const mappedTimeFilter = timeFilterMap[timeFilter] || 'any';
+
+    // First, try to get jobs using job scraping service (FREE APIs)
     try {
-        console.log(`Searching for jobs: ${searchTerm} in ${location}`);
-        
-        // Use job scraping service as primary method
-        const scrapedJobs = await jobScrapingService.scrapeJobs(searchTerm, location);
-        
+        console.log(`🔍 Searching for jobs: ${searchTerm} in ${location} (filter: ${timeFilter})`);
+
+        // Use job scraping service as primary method - FREE and UNLIMITED
+        const scrapedJobs = await jobScrapingService.scrapeJobs(searchTerm, location, mappedTimeFilter as any);
+
         if (scrapedJobs && scrapedJobs.length > 0) {
-            console.log(`Found ${scrapedJobs.length} jobs from scraping service`);
+            console.log(`✅ Found ${scrapedJobs.length} jobs from FREE APIs`);
             return scrapedJobs;
         }
-        
+
         console.log("No jobs found from scraping service, trying AI search...");
-        
+
     } catch (scrapingError) {
         console.warn("Job scraping service failed:", scrapingError);
     }
@@ -100,9 +111,9 @@ export const searchLiveJobs = async (searchTerm: string, location: string): Prom
             console.warn("AI response text is empty for searchLiveJobs.");
             throw new Error("AI returned empty response");
         }
-        
+
         const jobs = parseJsonResponse(response.text);
-        
+
         if (!Array.isArray(jobs)) {
             throw new Error("AI returned an unexpected format for job listings.");
         }
@@ -124,7 +135,7 @@ export const searchLiveJobs = async (searchTerm: string, location: string): Prom
 
     } catch (aiError) {
         console.error("Error searching live jobs with AI:", aiError);
-        
+
         // Final fallback: return demo jobs with clear indication
         console.log("Both scraping and AI search failed, returning demo jobs");
         return generateDemoJobs(searchTerm, location);
@@ -159,7 +170,7 @@ const generateDemoJobs = (searchTerm: string, location: string): Job[] => {
     ];
 };
 
-export const parseJobFromTextAndImage = async (text?: string, image?: {mimeType: string, data: string}): Promise<Job> => {
+export const parseJobFromTextAndImage = async (text?: string, image?: { mimeType: string, data: string }): Promise<Job> => {
     try {
         const prompt = `
             You are an intelligent job description parser. Your task is to analyze the provided text and/or image of a job posting and extract the key details.
@@ -200,7 +211,7 @@ export const parseJobFromTextAndImage = async (text?: string, image?: {mimeType:
                 }
             });
         }
-        
+
         const response = await ai.models.generateContent({
             model: model,
             contents: { parts: contentParts },
@@ -383,8 +394,8 @@ export const generateStructuredATSResume = async (userProfile: UserProfile, jobD
 };
 
 export const generateCoverLetter = async (userProfile: UserProfile, job: Job): Promise<string> => {
-  try {
-    const prompt = `
+    try {
+        const prompt = `
       You are a professional career writer crafting a compelling cover letter.
       Write a personalized cover letter for ${userProfile.name} applying for the ${job.title} position at ${job.company}.
       - Use the user's profile information and bio to create a genuine and personal tone.
@@ -406,26 +417,26 @@ export const generateCoverLetter = async (userProfile: UserProfile, job: Job): P
 
       Generate the cover letter now:
     `;
-    const response: GenerateContentResponse = await ai.models.generateContent({
-        model: model,
-        contents: prompt,
-    });
-    if (!response.text) {
-        if (response.promptFeedback?.blockReason) {
-            throw new Error(`AI request was blocked due to ${response.promptFeedback.blockReason}.`);
+        const response: GenerateContentResponse = await ai.models.generateContent({
+            model: model,
+            contents: prompt,
+        });
+        if (!response.text) {
+            if (response.promptFeedback?.blockReason) {
+                throw new Error(`AI request was blocked due to ${response.promptFeedback.blockReason}.`);
+            }
+            throw new Error("AI returned an empty response when generating the cover letter.");
         }
-        throw new Error("AI returned an empty response when generating the cover letter.");
+        return response.text;
+    } catch (error) {
+        console.error("Error generating cover letter:", error);
+        throw new Error("Could not generate cover letter. Please check your API key and try again.");
     }
-    return response.text;
-  } catch (error) {
-    console.error("Error generating cover letter:", error);
-    throw new Error("Could not generate cover letter. Please check your API key and try again.");
-  }
 };
 
 export const generateInterviewQuestions = async (job: Job): Promise<CategorizedQuestions[]> => {
-  try {
-    const prompt = `
+    try {
+        const prompt = `
       You are an experienced hiring manager for a top tech company.
       Based on the following job description for a "${job.title}" at "${job.company}", generate a list of 10-12 common interview questions.
       - Categorize the questions into "Behavioral", "Technical", and "Situational".
@@ -439,47 +450,47 @@ export const generateInterviewQuestions = async (job: Job): Promise<CategorizedQ
       Respond with a valid JSON array of objects.
     `;
 
-    const response = await ai.models.generateContent({
-      model: model,
-      contents: prompt,
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.ARRAY,
-          items: {
-            type: Type.OBJECT,
-            properties: {
-              category: { type: Type.STRING },
-              questions: {
-                type: Type.ARRAY,
-                items: {
-                  type: Type.OBJECT,
-                  properties: {
-                    question: { type: Type.STRING },
-                    tip: { type: Type.STRING }
-                  }
+        const response = await ai.models.generateContent({
+            model: model,
+            contents: prompt,
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: Type.ARRAY,
+                    items: {
+                        type: Type.OBJECT,
+                        properties: {
+                            category: { type: Type.STRING },
+                            questions: {
+                                type: Type.ARRAY,
+                                items: {
+                                    type: Type.OBJECT,
+                                    properties: {
+                                        question: { type: Type.STRING },
+                                        tip: { type: Type.STRING }
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
-              }
             }
-          }
-        }
-      }
-    });
+        });
 
-    if (!response.text) {
-        console.warn("AI response text is empty for generateInterviewQuestions. Returning empty array.");
-        return [];
+        if (!response.text) {
+            console.warn("AI response text is empty for generateInterviewQuestions. Returning empty array.");
+            return [];
+        }
+        return parseJsonResponse(response.text);
+    } catch (error) {
+        console.error("Error generating interview questions:", error);
+        throw new Error("Could not generate interview questions. Please check the API response and your key.");
     }
-    return parseJsonResponse(response.text);
-  } catch (error) {
-    console.error("Error generating interview questions:", error);
-    throw new Error("Could not generate interview questions. Please check the API response and your key.");
-  }
 };
 
 export const getSkillsGapAnalysis = async (baseResume: string, jobDescription: string): Promise<SkillAnalysis> => {
-  try {
-    const prompt = `
+    try {
+        const prompt = `
       As a career analyst, compare the provided resume against the job description. 
       Identify skills present in the resume that match the job requirements, and identify key skills from the job description that are missing from the resume. 
       Provide actionable suggestions on how to bridge these gaps.
@@ -496,38 +507,37 @@ export const getSkillsGapAnalysis = async (baseResume: string, jobDescription: s
 
       Respond with a valid JSON object.
     `;
-    const response = await ai.models.generateContent({
-      model: model,
-      contents: prompt,
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            matchingSkills: { type: Type.ARRAY, items: { type: Type.STRING } },
-            missingSkills: { type: Type.ARRAY, items: { type: Type.STRING } },
-            suggestions: { type: Type.STRING }
-          }
+        const response = await ai.models.generateContent({
+            model: model,
+            contents: prompt,
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: Type.OBJECT,
+                    properties: {
+                        matchingSkills: { type: Type.ARRAY, items: { type: Type.STRING } },
+                        missingSkills: { type: Type.ARRAY, items: { type: Type.STRING } },
+                        suggestions: { type: Type.STRING }
+                    }
+                }
+            }
+        });
+        if (!response.text) {
+            if (response.promptFeedback?.blockReason) {
+                throw new Error(`AI request was blocked due to ${response.promptFeedback.blockReason}.`);
+            }
+            throw new Error("AI returned an empty response for skills gap analysis.");
         }
-      }
-    });
-    if (!response.text) {
-        if (response.promptFeedback?.blockReason) {
-            throw new Error(`AI request was blocked due to ${response.promptFeedback.blockReason}.`);
-        }
-        throw new Error("AI returned an empty response for skills gap analysis.");
+        return parseJsonResponse(response.text);
+    } catch (error) {
+        console.error("Error getting skills gap analysis:", error);
+        throw new Error("Could not generate skills gap analysis.");
     }
-    return parseJsonResponse(response.text);
-  } catch (error)
- {
-    console.error("Error getting skills gap analysis:", error);
-    throw new Error("Could not generate skills gap analysis.");
-  }
 };
 
 export const getInterviewFeedback = async (question: string, userAnswer: string): Promise<InterviewFeedback> => {
-  try {
-    const prompt = `
+    try {
+        const prompt = `
       You are a supportive and constructive interview coach.
       The user is practicing for an interview.
       The interview question was: "${question}"
@@ -537,36 +547,36 @@ export const getInterviewFeedback = async (question: string, userAnswer: string)
       Offer specific suggestions for improvement.
       Respond with a valid JSON object.
     `;
-     const response = await ai.models.generateContent({
-      model: model,
-      contents: prompt,
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            feedback: { type: Type.STRING, description: "Overall constructive feedback on the answer." },
-            suggestions: { type: Type.ARRAY, items: { type: Type.STRING }, description: "A list of actionable suggestions for improvement." }
-          }
+        const response = await ai.models.generateContent({
+            model: model,
+            contents: prompt,
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: Type.OBJECT,
+                    properties: {
+                        feedback: { type: Type.STRING, description: "Overall constructive feedback on the answer." },
+                        suggestions: { type: Type.ARRAY, items: { type: Type.STRING }, description: "A list of actionable suggestions for improvement." }
+                    }
+                }
+            }
+        });
+        if (!response.text) {
+            if (response.promptFeedback?.blockReason) {
+                throw new Error(`AI request was blocked due to ${response.promptFeedback.blockReason}.`);
+            }
+            throw new Error("AI returned an empty response for interview feedback.");
         }
-      }
-    });
-    if (!response.text) {
-        if (response.promptFeedback?.blockReason) {
-            throw new Error(`AI request was blocked due to ${response.promptFeedback.blockReason}.`);
-        }
-        throw new Error("AI returned an empty response for interview feedback.");
+        return parseJsonResponse(response.text);
+    } catch (error) {
+        console.error("Error getting interview feedback:", error);
+        throw new Error("Could not generate interview feedback.");
     }
-    return parseJsonResponse(response.text);
-  } catch (error) {
-    console.error("Error getting interview feedback:", error);
-    throw new Error("Could not generate interview feedback.");
-  }
 };
 
 export const getInterviewVideoFeedback = async (question: string, userAnswer: string): Promise<InterviewFeedback> => {
-  try {
-    const prompt = `
+    try {
+        const prompt = `
       You are an expert communication coach analyzing a user's video interview performance.
       The interview question was: "${question}"
       The user's transcribed answer was: "${userAnswer}"
@@ -579,33 +589,33 @@ export const getInterviewVideoFeedback = async (question: string, userAnswer: st
       2.  **Simulate** feedback on non-verbal cues. Even though you can't see the video, provide generic but helpful advice about body language and speaking pace based on common best practices.
       3.  Give actionable suggestions for all areas.
     `;
-     const response = await ai.models.generateContent({
-      model: model,
-      contents: prompt,
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            feedback: { type: Type.STRING, description: "Overall constructive feedback on the answer's content." },
-            bodyLanguageFeedback: { type: Type.STRING, description: "Feedback on posture, eye contact, and gestures." },
-            pacingFeedback: { type: Type.STRING, description: "Feedback on speaking speed and use of filler words." },
-            suggestions: { type: Type.ARRAY, items: { type: Type.STRING }, description: "A list of actionable suggestions for improvement." }
-          }
+        const response = await ai.models.generateContent({
+            model: model,
+            contents: prompt,
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: Type.OBJECT,
+                    properties: {
+                        feedback: { type: Type.STRING, description: "Overall constructive feedback on the answer's content." },
+                        bodyLanguageFeedback: { type: Type.STRING, description: "Feedback on posture, eye contact, and gestures." },
+                        pacingFeedback: { type: Type.STRING, description: "Feedback on speaking speed and use of filler words." },
+                        suggestions: { type: Type.ARRAY, items: { type: Type.STRING }, description: "A list of actionable suggestions for improvement." }
+                    }
+                }
+            }
+        });
+        if (!response.text) {
+            if (response.promptFeedback?.blockReason) {
+                throw new Error(`AI request was blocked due to ${response.promptFeedback.blockReason}.`);
+            }
+            throw new Error("AI returned an empty response for video interview feedback.");
         }
-      }
-    });
-    if (!response.text) {
-        if (response.promptFeedback?.blockReason) {
-            throw new Error(`AI request was blocked due to ${response.promptFeedback.blockReason}.`);
-        }
-        throw new Error("AI returned an empty response for video interview feedback.");
+        return parseJsonResponse(response.text);
+    } catch (error) {
+        console.error("Error getting interview video feedback:", error);
+        throw new Error("Could not generate interview video feedback.");
     }
-    return parseJsonResponse(response.text);
-  } catch (error) {
-    console.error("Error getting interview video feedback:", error);
-    throw new Error("Could not generate interview video feedback.");
-  }
 };
 
 export const generateFollowUpEmail = async (userProfile: UserProfile, job: Job, interviewerName: string, interviewDate: string, notes: string): Promise<string> => {
@@ -849,8 +859,8 @@ export const getApplicationInsights = async (job: TrackedJob, userResume: string
 };
 
 export const generateCareerPathPlan = async (currentRole: string, goalRole: string): Promise<CareerPathPlan> => {
-  try {
-    const prompt = `
+    try {
+        const prompt = `
       You are a seasoned career strategist and mentor. A user wants a strategic plan to get from their current role to their goal role.
 
       User's Current Role: ${currentRole}
@@ -870,24 +880,24 @@ export const generateCareerPathPlan = async (currentRole: string, goalRole: stri
       }
       Do not add any text, explanations, or markdown formatting before or after the JSON object.
     `;
-    const response = await ai.models.generateContent({
-      model: model,
-      contents: prompt,
-      config: {
-        tools: [{ googleSearch: {} }],
-      }
-    });
-    if (!response.text) {
-        if (response.promptFeedback?.blockReason) {
-            throw new Error(`AI request was blocked due to ${response.promptFeedback.blockReason}.`);
+        const response = await ai.models.generateContent({
+            model: model,
+            contents: prompt,
+            config: {
+                tools: [{ googleSearch: {} }],
+            }
+        });
+        if (!response.text) {
+            if (response.promptFeedback?.blockReason) {
+                throw new Error(`AI request was blocked due to ${response.promptFeedback.blockReason}.`);
+            }
+            throw new Error("AI returned an empty response for career path plan.");
         }
-        throw new Error("AI returned an empty response for career path plan.");
+        return parseJsonResponse(response.text);
+    } catch (error) {
+        console.error("Error generating career path plan:", error);
+        throw new Error("Could not generate the career path plan.");
     }
-    return parseJsonResponse(response.text);
-  } catch (error) {
-    console.error("Error generating career path plan:", error);
-    throw new Error("Could not generate the career path plan.");
-  }
 };
 
 export const analyzeApplicationForm = async (job: Job, userProfile: UserProfile): Promise<ParsedApplicationForm> => {
@@ -924,19 +934,19 @@ export const analyzeApplicationForm = async (job: Job, userProfile: UserProfile)
                 tools: [{ googleSearch: {} }],
             }
         });
-        
+
         if (!response.text) {
             if (response.promptFeedback?.blockReason) {
                 throw new Error(`AI request was blocked due to ${response.promptFeedback.blockReason}.`);
             }
             throw new Error("AI returned an empty response when analyzing the application form.");
         }
-        
+
         const parsedData = parseJsonResponse(response.text);
-        
+
         // Ensure the response has the correct shape
         if (!parsedData || !Array.isArray(parsedData.basicInfo) || !Array.isArray(parsedData.customQuestions)) {
-          throw new Error("AI returned data in an unexpected format.");
+            throw new Error("AI returned data in an unexpected format.");
         }
 
         return parsedData;

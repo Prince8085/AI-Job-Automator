@@ -1,7 +1,8 @@
-import { eq, and, desc, asc, like, ilike } from 'drizzle-orm';
+import { eq, and, desc, ilike } from 'drizzle-orm';
 import { db } from '../connection';
 import { jobs, trackedJobs, insertJobSchema, insertTrackedJobSchema } from '../schema';
-import type { Job, TrackedJob } from '../../types';
+import type { Job } from '../../types';
+import { ApplicationStatus } from '../../types';
 
 export class JobService {
   // Create a new job
@@ -112,15 +113,18 @@ export class JobService {
   }
 
   // Track a job for a user
-  static async trackJob(userId: string, jobId: string, applicationStatus: string = 'not_applied') {
+  static async trackJob(
+    userId: string,
+    jobId: string,
+    status: ApplicationStatus = ApplicationStatus.SAVED
+  ) {
     try {
       const trackedJobData = {
         userId,
         jobId,
-        applicationStatus,
-        appliedAt: applicationStatus === 'applied' ? new Date() : null,
+        status,
       };
-      
+
       const validatedData = insertTrackedJobSchema.parse(trackedJobData);
       const [trackedJob] = await db.insert(trackedJobs).values(validatedData).returning();
       return trackedJob;
@@ -131,7 +135,7 @@ export class JobService {
   }
 
   // Get tracked jobs for a user
-  static async getTrackedJobs(userId: string, status?: string) {
+  static async getTrackedJobs(userId: string, status?: ApplicationStatus) {
     try {
       let query = db
         .select({
@@ -145,7 +149,7 @@ export class JobService {
       if (status) {
         query = query.where(and(
           eq(trackedJobs.userId, userId),
-          eq(trackedJobs.applicationStatus, status)
+          eq(trackedJobs.status, status)
         ));
       }
 
@@ -160,16 +164,12 @@ export class JobService {
   }
 
   // Update tracked job status
-  static async updateTrackedJobStatus(userId: string, jobId: string, status: string, notes?: string) {
+  static async updateTrackedJobStatus(userId: string, jobId: string, status: ApplicationStatus, notes?: string) {
     try {
-      const updateData: any = { 
-        applicationStatus: status,
+      const updateData: any = {
+        status,
         updatedAt: new Date(),
       };
-      
-      if (status === 'applied' && !updateData.appliedAt) {
-        updateData.appliedAt = new Date();
-      }
       
       if (notes) {
         updateData.notes = notes;

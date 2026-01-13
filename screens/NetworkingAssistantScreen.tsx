@@ -6,7 +6,11 @@ import { findPotentialContacts, generateOutreachMessage } from '../services/gemi
 import ScreenWrapper from '../components/ScreenWrapper';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { Job, PotentialContact } from '../types';
-import { MOCK_POTENTIAL_CONTACTS } from '../constants';
+// Sample contacts to show when AI cannot find real contacts
+const SAMPLE_CONTACTS: PotentialContact[] = [
+    { name: 'Sample Recruiter', title: 'Talent Acquisition', linkedinUrl: '#', email: '' },
+    { name: 'Sample Manager', title: 'Hiring Manager', linkedinUrl: '#', email: '' },
+];
 import { UserIcon, SparklesIcon, ClipboardCopyIcon, CheckIcon, LinkedInIcon, AtSymbolIcon, InformationCircleIcon } from '../components/icons';
 
 const NetworkingAssistantScreen: React.FC = () => {
@@ -45,13 +49,13 @@ const NetworkingAssistantScreen: React.FC = () => {
                 setContacts(result);
                 showToast(`Found ${result.length} potential contacts!`, 'success');
             } else {
-                setContacts(MOCK_POTENTIAL_CONTACTS);
+                setContacts(SAMPLE_CONTACTS);
                 setIsMockData(true);
                 showToast('Could not find live contacts. Displaying sample data.', 'info');
             }
         } catch (err: any) {
             showToast(err.message || 'Error finding contacts.', 'error');
-            setContacts(MOCK_POTENTIAL_CONTACTS);
+            setContacts(SAMPLE_CONTACTS);
             setIsMockData(true);
         } finally {
             setIsLoading(false);
@@ -71,7 +75,7 @@ const NetworkingAssistantScreen: React.FC = () => {
             setIsGeneratingMessage(false);
         }
     };
-    
+
     const handleCopyToClipboard = () => {
         navigator.clipboard.writeText(outreachMessage);
         setIsCopied(true);
@@ -101,12 +105,12 @@ const NetworkingAssistantScreen: React.FC = () => {
                 <div className="bg-white p-6 rounded-lg shadow-lg">
                     <h3 className="text-xl font-bold text-text-primary mb-2">Potential Contacts</h3>
                     <p className="text-text-secondary mb-4 text-sm">Click a contact to generate a personalized outreach message.</p>
-                    
+
                     {isMockData && (
-                      <div className="bg-yellow-50 text-yellow-800 p-3 rounded-lg text-sm mb-4 flex items-center">
-                        <InformationCircleIcon className="w-5 h-5 mr-2 flex-shrink-0" />
-                        <span>Could not find live contacts. Displaying sample data to demonstrate the feature.</span>
-                      </div>
+                        <div className="bg-yellow-50 text-yellow-800 p-3 rounded-lg text-sm mb-4 flex items-center">
+                            <InformationCircleIcon className="w-5 h-5 mr-2 flex-shrink-0" />
+                            <span>Could not find live contacts. Displaying sample data to demonstrate the feature.</span>
+                        </div>
                     )}
 
                     <div className="space-y-3">
@@ -114,27 +118,27 @@ const NetworkingAssistantScreen: React.FC = () => {
                             <div key={index}>
                                 <div className="w-full text-left p-4 bg-slate-50 rounded-lg border border-slate-200">
                                     <div className="flex justify-between items-center">
-                                      <div className="flex items-center">
-                                        <div className="flex-shrink-0 bg-primary text-white w-10 h-10 rounded-full flex items-center justify-center">
-                                            <UserIcon className="w-6 h-6" />
+                                        <div className="flex items-center">
+                                            <div className="flex-shrink-0 bg-primary text-white w-10 h-10 rounded-full flex items-center justify-center">
+                                                <UserIcon className="w-6 h-6" />
+                                            </div>
+                                            <div className="ml-4">
+                                                <p className="font-bold text-text-primary">{contact.name}</p>
+                                                <p className="text-sm text-text-secondary">{contact.title}</p>
+                                            </div>
                                         </div>
-                                        <div className="ml-4">
-                                            <p className="font-bold text-text-primary">{contact.name}</p>
-                                            <p className="text-sm text-text-secondary">{contact.title}</p>
+                                        <div className="flex items-center space-x-2">
+                                            {contact.linkedinUrl && (
+                                                <a href={contact.linkedinUrl} target="_blank" rel="noopener noreferrer" className="p-2 rounded-full hover:bg-slate-200 text-blue-700">
+                                                    <LinkedInIcon className="w-5 h-5" />
+                                                </a>
+                                            )}
+                                            {contact.email && (
+                                                <a href={`mailto:${contact.email}`} className="p-2 rounded-full hover:bg-slate-200 text-text-secondary">
+                                                    <AtSymbolIcon className="w-5 h-5" />
+                                                </a>
+                                            )}
                                         </div>
-                                      </div>
-                                      <div className="flex items-center space-x-2">
-                                        {contact.linkedinUrl && (
-                                            <a href={contact.linkedinUrl} target="_blank" rel="noopener noreferrer" className="p-2 rounded-full hover:bg-slate-200 text-blue-700">
-                                                <LinkedInIcon className="w-5 h-5"/>
-                                            </a>
-                                        )}
-                                        {contact.email && (
-                                            <a href={`mailto:${contact.email}`} className="p-2 rounded-full hover:bg-slate-200 text-text-secondary">
-                                                <AtSymbolIcon className="w-5 h-5"/>
-                                            </a>
-                                        )}
-                                      </div>
                                     </div>
                                     <button onClick={() => handleSelectContact(contact)} className="mt-3 text-sm font-semibold text-primary hover:text-indigo-700">
                                         Generate outreach message
@@ -146,7 +150,7 @@ const NetworkingAssistantScreen: React.FC = () => {
                                             <LoadingSpinner text="Generating message..." />
                                         ) : (
                                             <div className="space-y-3">
-                                                <h4 className="font-semibold flex items-center"><SparklesIcon className="w-5 h-5 mr-2 text-secondary"/> Generated Outreach Message</h4>
+                                                <h4 className="font-semibold flex items-center"><SparklesIcon className="w-5 h-5 mr-2 text-secondary" /> Generated Outreach Message</h4>
                                                 <div className="p-3 bg-white border border-slate-200 rounded-md whitespace-pre-wrap leading-relaxed">
                                                     {outreachMessage}
                                                 </div>

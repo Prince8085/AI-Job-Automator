@@ -9,10 +9,80 @@ export enum TimeFilter {
   ANY_TIME = 'any'
 }
 
-// Job scraping service to fetch real jobs from multiple sources
+// Convert TimeFilter to hours for filtering
+const timeFilterToHours: Record<TimeFilter, number> = {
+  [TimeFilter.LAST_HOUR]: 1,
+  [TimeFilter.LAST_24_HOURS]: 24,
+  [TimeFilter.LAST_WEEK]: 168,
+  [TimeFilter.LAST_MONTH]: 720,
+  [TimeFilter.ANY_TIME]: 8760 // 1 year
+};
+
+// ==========================================
+// FREE JOB API INTERFACES
+// ==========================================
+
+// RemoteOK API Response
+interface RemoteOKJob {
+  id: string;
+  slug: string;
+  company: string;
+  company_logo?: string;
+  position: string;
+  tags: string[];
+  description: string;
+  location: string;
+  salary_min?: number;
+  salary_max?: number;
+  date: string;
+  url: string;
+}
+
+// Arbeitnow API Response
+interface ArbeitnowJob {
+  slug: string;
+  company_name: string;
+  title: string;
+  description: string;
+  remote: boolean;
+  url: string;
+  tags: string[];
+  job_types: string[];
+  location: string;
+  created_at: number; // Unix timestamp
+}
+
+interface ArbeitnowResponse {
+  data: ArbeitnowJob[];
+}
+
+// Jobicy API Response
+interface JobicyJob {
+  id: number;
+  url: string;
+  jobTitle: string;
+  companyName: string;
+  companyLogo?: string;
+  jobIndustry: string[];
+  jobType: string[];
+  jobGeo: string;
+  jobLevel: string;
+  jobExcerpt: string;
+  jobDescription: string;
+  pubDate: string;
+}
+
+interface JobicyResponse {
+  jobs: JobicyJob[];
+}
+
+// ==========================================
+// JOB SCRAPING SERVICE
+// ==========================================
+
 export class JobScrapingService {
   private static instance: JobScrapingService;
-  
+
   public static getInstance(): JobScrapingService {
     if (!JobScrapingService.instance) {
       JobScrapingService.instance = new JobScrapingService();
@@ -20,332 +90,374 @@ export class JobScrapingService {
     return JobScrapingService.instance;
   }
 
-  // Indian companies database
-  private readonly indianCompanies = [
-    'Tata Consultancy Services', 'Infosys', 'Wipro', 'HCL Technologies', 'Tech Mahindra',
-    'Cognizant', 'Accenture India', 'IBM India', 'Microsoft India', 'Google India',
-    'Amazon India', 'Flipkart', 'Paytm', 'Zomato', 'Swiggy', 'Ola', 'Uber India',
-    'PhonePe', 'BYJU\'S', 'Unacademy', 'Vedantu', 'Freshworks', 'Zoho', 'InMobi',
-    'Razorpay', 'CRED', 'Dream11', 'MPL', 'Nykaa', 'BigBasket', 'Grofers',
-    'PolicyBazaar', 'MakeMyTrip', 'Goibibo', 'RedBus', 'BookMyShow', 'Practo',
-    'Lenskart', 'UrbanClap', 'Dunzo', 'Shadowfax', 'Delhivery', 'Rivigo',
-    'Capgemini India', 'Oracle India', 'SAP Labs India', 'Adobe India', 'Salesforce India',
-    'Cisco India', 'Intel India', 'NVIDIA India', 'Qualcomm India', 'Texas Instruments India'
-  ];
+  // Check if job was posted within the time filter
+  private isWithinTimeFilter(postedDate: string | number, timeFilter: TimeFilter): boolean {
+    const maxHours = timeFilterToHours[timeFilter];
+    const now = Date.now();
 
-  // International companies database
-  private readonly internationalCompanies = [
-    'Google', 'Microsoft', 'Amazon', 'Meta', 'Apple', 'Netflix', 'Tesla', 'SpaceX',
-    'Spotify', 'Uber', 'Airbnb', 'Stripe', 'Shopify', 'Atlassian', 'Slack', 'Zoom',
-    'Dropbox', 'GitHub', 'GitLab', 'Docker', 'MongoDB', 'Redis', 'Elastic',
-    'Snowflake', 'Databricks', 'Palantir', 'Coinbase', 'Square', 'PayPal', 'Visa',
-    'Mastercard', 'JPMorgan Chase', 'Goldman Sachs', 'Morgan Stanley', 'BlackRock',
-    'Citadel', 'Two Sigma', 'Jane Street', 'DE Shaw', 'Bridgewater Associates',
-    'McKinsey & Company', 'Boston Consulting Group', 'Bain & Company', 'Deloitte',
-    'PwC', 'EY', 'KPMG', 'Accenture', 'IBM', 'Oracle', 'SAP', 'Salesforce'
-  ];
+    let jobTime: number;
+    if (typeof postedDate === 'number') {
+      // Unix timestamp (seconds)
+      jobTime = postedDate * 1000;
+    } else {
+      // ISO date string
+      jobTime = new Date(postedDate).getTime();
+    }
 
-  // Job locations for Indian and international markets
-  private readonly jobLocations = {
-    indian: [
-      'Bangalore', 'Mumbai', 'Delhi', 'Hyderabad', 'Chennai', 'Pune', 'Kolkata',
-      'Gurgaon', 'Noida', 'Ahmedabad', 'Kochi', 'Thiruvananthapuram', 'Indore',
-      'Bhubaneswar', 'Jaipur', 'Chandigarh', 'Coimbatore', 'Mysore', 'Mangalore'
-    ],
-    international: [
-      'San Francisco, CA', 'New York, NY', 'Seattle, WA', 'Austin, TX', 'Boston, MA',
-      'Los Angeles, CA', 'Chicago, IL', 'Denver, CO', 'Atlanta, GA', 'Miami, FL',
-      'London, UK', 'Berlin, Germany', 'Amsterdam, Netherlands', 'Toronto, Canada',
-      'Sydney, Australia', 'Singapore', 'Tokyo, Japan', 'Dublin, Ireland', 'Remote'
-    ]
-  };
+    const hoursDiff = (now - jobTime) / (1000 * 60 * 60);
+    return hoursDiff <= maxHours;
+  }
 
-  // Scrape jobs from Indeed with time filtering
-  private async scrapeIndeedJobs(searchTerm: string, location: string, timeFilter: TimeFilter = TimeFilter.ANY_TIME): Promise<Job[]> {
+  // Format relative time
+  private formatPostedDate(postedDate: string | number): string {
+    const now = Date.now();
+    let jobTime: number;
+
+    if (typeof postedDate === 'number') {
+      jobTime = postedDate * 1000;
+    } else {
+      jobTime = new Date(postedDate).getTime();
+    }
+
+    const hoursDiff = Math.floor((now - jobTime) / (1000 * 60 * 60));
+
+    if (hoursDiff < 1) return 'Just now';
+    if (hoursDiff === 1) return '1 hour ago';
+    if (hoursDiff < 24) return `${hoursDiff} hours ago`;
+
+    const daysDiff = Math.floor(hoursDiff / 24);
+    if (daysDiff === 1) return '1 day ago';
+    if (daysDiff < 7) return `${daysDiff} days ago`;
+    if (daysDiff < 14) return '1 week ago';
+    return `${Math.floor(daysDiff / 7)} weeks ago`;
+  }
+
+  // ==========================================
+  // REMOTEOK API (FREE, NO KEY REQUIRED)
+  // ==========================================
+  private async fetchRemoteOKJobs(searchTerm: string, timeFilter: TimeFilter): Promise<Job[]> {
     try {
-      const jobs: Job[] = [];
-      
-      const jobTitles = [
-        `${searchTerm} Developer`,
-        `Senior ${searchTerm}`,
-        `Junior ${searchTerm}`,
-        `${searchTerm} Engineer`,
-        `Full Stack ${searchTerm}`,
-        `Lead ${searchTerm}`,
-        `${searchTerm} Specialist`,
-        `Principal ${searchTerm}`
-      ];
-      
-      // Mix of Indian and international companies (60% Indian, 40% International)
-      const mixedCompanies = [
-        ...this.indianCompanies.slice(0, 15),
-        ...this.internationalCompanies.slice(0, 10)
-      ];
-      
-      const descriptions = [
-        `We are looking for a talented ${searchTerm} to join our dynamic team. You will be responsible for developing high-quality software solutions and working with cutting-edge technologies. Experience with modern frameworks and cloud platforms is preferred.`,
-        `Join our innovative team as a ${searchTerm}! You'll work on exciting projects, collaborate with talented engineers, and help build products used by millions of users. We offer competitive compensation and excellent growth opportunities.`,
-        `Seeking an experienced ${searchTerm} to help us scale our platform. You'll work with modern tech stack including microservices, containers, and cloud infrastructure. Great opportunity for career advancement.`,
-        `We're hiring a ${searchTerm} to work on challenging problems and build scalable solutions. You'll be part of a fast-growing team working on cutting-edge technology. Remote work options available.`,
-        `Looking for a passionate ${searchTerm} to join our engineering team. You'll work on innovative projects, mentor junior developers, and help shape the future of our products. Excellent benefits package included.`,
-        `Exciting opportunity for a ${searchTerm} to work with latest technologies and frameworks. You'll collaborate with cross-functional teams and contribute to high-impact projects. Flexible working hours and learning budget provided.`
-      ];
-      
-      for (let i = 0; i < 6; i++) {
-        const company = mixedCompanies[Math.floor(Math.random() * mixedCompanies.length)];
-        const title = jobTitles[i % jobTitles.length];
-        const description = descriptions[i % descriptions.length];
-        const isIndianCompany = this.indianCompanies.includes(company);
-        
-        jobs.push({
-          id: `indeed-${i}-${Date.now()}`,
-          title,
-          company,
-          location: this.getJobLocation(location, isIndianCompany),
-          description,
-          tags: this.generateTags(searchTerm, isIndianCompany),
-          salary: this.generateSalary(isIndianCompany),
-          postedDate: this.generatePostedDate(timeFilter),
-          sourceUrl: `https://www.indeed.com/viewjob?jk=job${i}${Date.now()}`
-        });
+      console.log('Fetching from RemoteOK API...');
+
+      const response = await fetch('https://remoteok.com/api', {
+        headers: {
+          'Accept': 'application/json',
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`RemoteOK API error: ${response.status}`);
       }
-      
-      return jobs;
+
+      const data: RemoteOKJob[] = await response.json();
+
+      // First item is metadata, skip it
+      const jobs = data.slice(1);
+
+      // Filter by search term and time
+      const searchLower = searchTerm.toLowerCase();
+      const filteredJobs = jobs.filter(job => {
+        const matchesSearch =
+          job.position?.toLowerCase().includes(searchLower) ||
+          job.company?.toLowerCase().includes(searchLower) ||
+          job.tags?.some(tag => tag.toLowerCase().includes(searchLower)) ||
+          job.description?.toLowerCase().includes(searchLower);
+
+        const withinTime = this.isWithinTimeFilter(job.date, timeFilter);
+
+        return matchesSearch && withinTime;
+      });
+
+      return filteredJobs.slice(0, 10).map(job => ({
+        id: `remoteok-${job.id || job.slug}`,
+        title: job.position || 'Unknown Position',
+        company: job.company || 'Unknown Company',
+        location: job.location || 'Remote',
+        description: this.cleanDescription(job.description),
+        tags: [...(job.tags || []).slice(0, 4), 'Remote', 'RemoteOK'],
+        salary: this.formatRemoteOKSalary(job.salary_min, job.salary_max),
+        postedDate: this.formatPostedDate(job.date),
+        sourceUrl: job.url || `https://remoteok.com/remote-jobs/${job.slug}`,
+        isWishlisted: false
+      }));
+
     } catch (error) {
-      console.error('Error scraping Indeed jobs:', error);
+      console.error('RemoteOK API error:', error);
       return [];
     }
   }
 
-  // Scrape jobs from LinkedIn with time filtering
-  private async scrapeLinkedInJobs(searchTerm: string, location: string, timeFilter: TimeFilter = TimeFilter.ANY_TIME): Promise<Job[]> {
+  private formatRemoteOKSalary(min?: number, max?: number): string {
+    if (min && max) {
+      return `$${(min / 1000).toFixed(0)}k - $${(max / 1000).toFixed(0)}k`;
+    }
+    if (min) return `$${(min / 1000).toFixed(0)}k+`;
+    if (max) return `Up to $${(max / 1000).toFixed(0)}k`;
+    return 'Not specified';
+  }
+
+  // ==========================================
+  // ARBEITNOW API (FREE, NO KEY REQUIRED)
+  // ==========================================
+  private async fetchArbeitnowJobs(searchTerm: string, timeFilter: TimeFilter): Promise<Job[]> {
     try {
-      const jobs: Job[] = [];
-      
-      const jobTitles = [
-        `${searchTerm} Professional`,
-        `${searchTerm} Consultant`,
-        `Senior ${searchTerm} Manager`,
-        `${searchTerm} Lead`,
-        `${searchTerm} Architect`,
-        `${searchTerm} Specialist`
-      ];
-      
-      // Mix of Indian and international companies (50% Indian, 50% International)
-      const mixedCompanies = [
-        ...this.indianCompanies.slice(5, 15),
-        ...this.internationalCompanies.slice(5, 15)
-      ];
-      
-      const descriptions = [
-        `Exciting opportunity for a ${searchTerm} to join our professional services team. You'll work with enterprise clients and cutting-edge solutions. Strong analytical and problem-solving skills required.`,
-        `We're seeking a ${searchTerm} to help drive digital transformation initiatives. Experience with enterprise software, cloud platforms, and consulting preferred. Excellent growth opportunities.`,
-        `Join our team as a ${searchTerm} and work on high-impact projects with Fortune 500 companies. You'll lead technical initiatives and collaborate with global teams. Competitive package offered.`,
-        `Looking for a ${searchTerm} to lead technical initiatives and mentor team members. Strong communication, leadership skills, and experience with agile methodologies required.`,
-        `Opportunity for a ${searchTerm} to work on innovative solutions and help shape our technology strategy. You'll work with latest tools and frameworks. Remote work options available.`
-      ];
-      
-      for (let i = 0; i < 5; i++) {
-        const company = mixedCompanies[Math.floor(Math.random() * mixedCompanies.length)];
-        const title = jobTitles[i % jobTitles.length];
-        const description = descriptions[i % descriptions.length];
-        const isIndianCompany = this.indianCompanies.includes(company);
-        
-        jobs.push({
-          id: `linkedin-${i}-${Date.now()}`,
-          title,
-          company,
-          location: this.getJobLocation(location, isIndianCompany),
-          description,
-          tags: this.generateTags(searchTerm, isIndianCompany),
-          salary: this.generateSalary(isIndianCompany),
-          postedDate: this.generatePostedDate(timeFilter),
-          sourceUrl: `https://www.linkedin.com/jobs/view/job${i}${Date.now()}`
-        });
+      console.log('Fetching from Arbeitnow API...');
+
+      const response = await fetch('https://www.arbeitnow.com/api/job-board-api', {
+        headers: {
+          'Accept': 'application/json',
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`Arbeitnow API error: ${response.status}`);
       }
-      
-      return jobs;
+
+      const data: ArbeitnowResponse = await response.json();
+
+      const searchLower = searchTerm.toLowerCase();
+      const filteredJobs = data.data.filter(job => {
+        const matchesSearch =
+          job.title?.toLowerCase().includes(searchLower) ||
+          job.company_name?.toLowerCase().includes(searchLower) ||
+          job.tags?.some(tag => tag.toLowerCase().includes(searchLower)) ||
+          job.description?.toLowerCase().includes(searchLower);
+
+        const withinTime = this.isWithinTimeFilter(job.created_at, timeFilter);
+
+        return matchesSearch && withinTime;
+      });
+
+      return filteredJobs.slice(0, 10).map(job => ({
+        id: `arbeitnow-${job.slug}`,
+        title: job.title || 'Unknown Position',
+        company: job.company_name || 'Unknown Company',
+        location: job.remote ? 'Remote' : (job.location || 'Not specified'),
+        description: this.cleanDescription(job.description),
+        tags: [...(job.tags || []).slice(0, 3), ...(job.job_types || []), 'Arbeitnow'],
+        salary: 'Not specified',
+        postedDate: this.formatPostedDate(job.created_at),
+        sourceUrl: job.url,
+        isWishlisted: false
+      }));
+
     } catch (error) {
-      console.error('Error scraping LinkedIn jobs:', error);
+      console.error('Arbeitnow API error:', error);
       return [];
     }
   }
 
-  // Scrape jobs from Glassdoor with time filtering
-  private async scrapeGlassdoorJobs(searchTerm: string, location: string, timeFilter: TimeFilter = TimeFilter.ANY_TIME): Promise<Job[]> {
+  // ==========================================
+  // JOBICY API (FREE, NO KEY REQUIRED)
+  // ==========================================
+  private async fetchJobicyJobs(searchTerm: string, timeFilter: TimeFilter): Promise<Job[]> {
     try {
-      const jobs: Job[] = [];
-      
-      const jobTitles = [
-        `${searchTerm} Analyst`,
-        `${searchTerm} Coordinator`,
-        `${searchTerm} Manager`,
-        `${searchTerm} Director`,
-        `${searchTerm} Associate`
-      ];
-      
-      // Mix of Indian and international companies (70% Indian, 30% International)
-      const mixedCompanies = [
-        ...this.indianCompanies.slice(10, 20),
-        ...this.internationalCompanies.slice(10, 15)
-      ];
-      
-      const descriptions = [
-        `Join our team as a ${searchTerm} and help us build the future of work. You'll work with data analytics, user experience design, and modern development practices. Great learning opportunities.`,
-        `We're looking for a ${searchTerm} to help improve our platform and user engagement. Experience with data analysis, product management, and user research preferred. Flexible working arrangements.`,
-        `Opportunity for a ${searchTerm} to work on product development and user research. You'll collaborate with cross-functional teams and contribute to strategic decisions. Great benefits package.`,
-        `Seeking a ${searchTerm} to join our growing team. You'll work on exciting projects, have opportunities for professional growth, and access to latest tools and technologies.`
-      ];
-      
-      for (let i = 0; i < 4; i++) {
-        const company = mixedCompanies[Math.floor(Math.random() * mixedCompanies.length)];
-        const title = jobTitles[i % jobTitles.length];
-        const description = descriptions[i % descriptions.length];
-        const isIndianCompany = this.indianCompanies.includes(company);
-        
-        jobs.push({
-          id: `glassdoor-${i}-${Date.now()}`,
-          title,
-          company,
-          location: this.getJobLocation(location, isIndianCompany),
-          description,
-          tags: this.generateTags(searchTerm, isIndianCompany),
-          salary: this.generateSalary(isIndianCompany),
-          postedDate: this.generatePostedDate(timeFilter),
-          sourceUrl: `https://www.glassdoor.com/job-listing/job${i}${Date.now()}`
-        });
+      console.log('Fetching from Jobicy API...');
+
+      // Jobicy supports search via tag parameter
+      const searchParam = encodeURIComponent(searchTerm.toLowerCase().replace(/\s+/g, '-'));
+      const response = await fetch(`https://jobicy.com/api/v2/remote-jobs?count=20&tag=${searchParam}`, {
+        headers: {
+          'Accept': 'application/json',
+        }
+      });
+
+      if (!response.ok) {
+        // Try without search param
+        const fallbackResponse = await fetch('https://jobicy.com/api/v2/remote-jobs?count=20');
+        if (!fallbackResponse.ok) {
+          throw new Error(`Jobicy API error: ${response.status}`);
+        }
+        const fallbackData: JobicyResponse = await fallbackResponse.json();
+        return this.processJobicyJobs(fallbackData.jobs, searchTerm, timeFilter);
       }
-      
-      return jobs;
+
+      const data: JobicyResponse = await response.json();
+      return this.processJobicyJobs(data.jobs || [], searchTerm, timeFilter);
+
     } catch (error) {
-      console.error('Error scraping Glassdoor jobs:', error);
+      console.error('Jobicy API error:', error);
       return [];
     }
   }
 
-  // Get appropriate job location based on company type
-  private getJobLocation(preferredLocation: string, isIndianCompany: boolean): string {
-    if (preferredLocation && preferredLocation.toLowerCase() !== 'any') {
-      return preferredLocation;
-    }
-    
-    const locations = isIndianCompany ? this.jobLocations.indian : this.jobLocations.international;
-    return locations[Math.floor(Math.random() * locations.length)];
-  }
-
-  // Generate realistic tags based on search term
-  private generateTags(searchTerm: string, isIndianCompany: boolean = false): string[] {
-    const baseTags = ['Full-time', 'Remote', 'Benefits'];
-    const techTags = {
-      'software engineer': ['JavaScript', 'Python', 'React', 'Node.js', 'AWS'],
-      'frontend': ['React', 'Vue.js', 'Angular', 'TypeScript', 'CSS'],
-      'backend': ['Node.js', 'Python', 'Java', 'PostgreSQL', 'Docker'],
-      'fullstack': ['React', 'Node.js', 'MongoDB', 'Express', 'TypeScript'],
-      'data': ['Python', 'SQL', 'Machine Learning', 'Pandas', 'TensorFlow'],
-      'devops': ['AWS', 'Docker', 'Kubernetes', 'CI/CD', 'Terraform'],
-      'mobile': ['React Native', 'Flutter', 'iOS', 'Android', 'Swift'],
-      'intern': ['Entry Level', 'Training', 'Mentorship', 'Learning']
-    };
-    
+  private processJobicyJobs(jobs: JobicyJob[], searchTerm: string, timeFilter: TimeFilter): Job[] {
     const searchLower = searchTerm.toLowerCase();
-    let specificTags: string[] = [];
-    
-    for (const [key, tags] of Object.entries(techTags)) {
-      if (searchLower.includes(key)) {
-        specificTags = tags;
-        break;
-      }
-    }
-    
-    return [...baseTags, ...specificTags.slice(0, 3)];
+
+    const filteredJobs = jobs.filter(job => {
+      const matchesSearch =
+        job.jobTitle?.toLowerCase().includes(searchLower) ||
+        job.companyName?.toLowerCase().includes(searchLower) ||
+        job.jobIndustry?.some(ind => ind.toLowerCase().includes(searchLower)) ||
+        job.jobDescription?.toLowerCase().includes(searchLower);
+
+      const withinTime = this.isWithinTimeFilter(job.pubDate, timeFilter);
+
+      return matchesSearch && withinTime;
+    });
+
+    return filteredJobs.slice(0, 10).map(job => ({
+      id: `jobicy-${job.id}`,
+      title: job.jobTitle || 'Unknown Position',
+      company: job.companyName || 'Unknown Company',
+      location: job.jobGeo || 'Remote',
+      description: job.jobExcerpt || this.cleanDescription(job.jobDescription),
+      tags: [...(job.jobIndustry || []).slice(0, 2), ...(job.jobType || []), job.jobLevel, 'Jobicy'].filter(Boolean),
+      salary: 'Not specified',
+      postedDate: this.formatPostedDate(job.pubDate),
+      sourceUrl: job.url,
+      isWishlisted: false
+    }));
   }
 
-  // Generate realistic salary ranges
-  private generateSalary(isIndianCompany: boolean = false): string {
-    if (isIndianCompany) {
-      const indianSalaryRanges = [
-        '₹3,00,000 - ₹6,00,000',
-        '₹6,00,000 - ₹12,00,000',
-        '₹8,00,000 - ₹15,00,000',
-        '₹12,00,000 - ₹25,00,000',
-        '₹20,00,000 - ₹40,00,000',
-        'Competitive',
-        'Not specified'
-      ];
-      return indianSalaryRanges[Math.floor(Math.random() * indianSalaryRanges.length)];
+  // ==========================================
+  // UTILITY FUNCTIONS
+  // ==========================================
+
+  private cleanDescription(html: string): string {
+    if (!html) return 'No description available.';
+
+    // Remove HTML tags
+    let text = html.replace(/<[^>]*>/g, ' ');
+    // Decode HTML entities
+    text = text.replace(/&nbsp;/g, ' ')
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"');
+    // Clean up whitespace
+    text = text.replace(/\s+/g, ' ').trim();
+    // Limit length
+    if (text.length > 500) {
+      text = text.substring(0, 500) + '...';
     }
-    const salaryRanges = [
-      '$60,000 - $80,000',
-      '$80,000 - $120,000',
-      '$100,000 - $150,000',
-      '$120,000 - $180,000',
-      '$150,000 - $200,000',
-      'Competitive',
-      'Not specified'
-    ];
-    
-    return salaryRanges[Math.floor(Math.random() * salaryRanges.length)];
+    return text;
   }
 
-  // Generate realistic posted dates with time filtering
-  private generatePostedDate(timeFilter: TimeFilter = TimeFilter.ANY_TIME): string {
-    let maxDays: number;
-    
-    switch (timeFilter) {
-      case TimeFilter.LAST_HOUR:
-        return 'Posted 1 hour ago';
-      case TimeFilter.LAST_24_HOURS:
-        maxDays = 1;
-        break;
-      case TimeFilter.LAST_WEEK:
-        maxDays = 7;
-        break;
-      case TimeFilter.LAST_MONTH:
-        maxDays = 30;
-        break;
-      default:
-        maxDays = 14; // Default to 2 weeks for ANY_TIME
-    }
-    
-    const days = Math.floor(Math.random() * maxDays) + 1;
-    if (days === 1) return '1 day ago';
-    if (days < 7) return `${days} days ago`;
-    if (days === 7) return '1 week ago';
-    return `${Math.floor(days / 7)} weeks ago`;
-  }
+  // ==========================================
+  // MAIN SEARCH METHOD
+  // ==========================================
+  public async scrapeJobs(
+    searchTerm: string,
+    location: string,
+    timeFilter: TimeFilter = TimeFilter.ANY_TIME
+  ): Promise<Job[]> {
+    console.log(`🔍 Searching for: "${searchTerm}" | Location: "${location}" | Filter: ${timeFilter}`);
+    console.log('📡 Using FREE APIs: RemoteOK, Arbeitnow, Jobicy (No API key required!)');
 
-  // Main method to scrape jobs from all sources with time filtering
-  public async scrapeJobs(searchTerm: string, location: string, timeFilter: TimeFilter = TimeFilter.ANY_TIME): Promise<Job[]> {
     try {
-      console.log(`Scraping jobs for: ${searchTerm} in ${location}`);
-      
-      // Run all scrapers in parallel
-      const [indeedJobs, linkedinJobs, glassdoorJobs] = await Promise.all([
-        this.scrapeIndeedJobs(searchTerm, location, timeFilter),
-        this.scrapeLinkedInJobs(searchTerm, location, timeFilter),
-        this.scrapeGlassdoorJobs(searchTerm, location, timeFilter)
+      // Fetch from all sources in parallel
+      const [remoteOKJobs, arbeitnowJobs, jobicyJobs] = await Promise.allSettled([
+        this.fetchRemoteOKJobs(searchTerm, timeFilter),
+        this.fetchArbeitnowJobs(searchTerm, timeFilter),
+        this.fetchJobicyJobs(searchTerm, timeFilter)
       ]);
-      
-      // Combine all jobs
-      const allJobs = [...indeedJobs, ...linkedinJobs, ...glassdoorJobs];
-      
-      // Shuffle the results to make them appear more natural
-      return this.shuffleArray(allJobs);
-      
+
+      // Collect successful results
+      const allJobs: Job[] = [];
+
+      if (remoteOKJobs.status === 'fulfilled') {
+        console.log(`✅ RemoteOK: ${remoteOKJobs.value.length} jobs`);
+        allJobs.push(...remoteOKJobs.value);
+      } else {
+        console.log('❌ RemoteOK failed');
+      }
+
+      if (arbeitnowJobs.status === 'fulfilled') {
+        console.log(`✅ Arbeitnow: ${arbeitnowJobs.value.length} jobs`);
+        allJobs.push(...arbeitnowJobs.value);
+      } else {
+        console.log('❌ Arbeitnow failed');
+      }
+
+      if (jobicyJobs.status === 'fulfilled') {
+        console.log(`✅ Jobicy: ${jobicyJobs.value.length} jobs`);
+        allJobs.push(...jobicyJobs.value);
+      } else {
+        console.log('❌ Jobicy failed');
+      }
+
+      // Filter by location if specified
+      let filteredJobs = allJobs;
+      if (location && location.toLowerCase() !== 'any' && location.toLowerCase() !== 'remote') {
+        const locationLower = location.toLowerCase();
+        filteredJobs = allJobs.filter(job =>
+          job.location.toLowerCase().includes(locationLower) ||
+          job.location.toLowerCase() === 'remote' ||
+          job.location.toLowerCase().includes('worldwide')
+        );
+      }
+
+      // Remove duplicates by title + company
+      const seen = new Set<string>();
+      const uniqueJobs = filteredJobs.filter(job => {
+        const key = `${job.title.toLowerCase()}-${job.company.toLowerCase()}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+
+      // Sort by most recent
+      uniqueJobs.sort((a, b) => {
+        const aHours = this.getHoursFromPostedDate(a.postedDate);
+        const bHours = this.getHoursFromPostedDate(b.postedDate);
+        return aHours - bHours;
+      });
+
+      console.log(`📊 Total unique jobs found: ${uniqueJobs.length}`);
+
+      if (uniqueJobs.length === 0) {
+        // Return helpful message
+        return [{
+          id: 'no-results',
+          title: `No "${searchTerm}" jobs found`,
+          company: 'Try Different Keywords',
+          location: 'Remote',
+          description: `We searched RemoteOK, Arbeitnow, and Jobicy but found no jobs matching "${searchTerm}" posted within your time filter. Try:\n• Broader keywords like "developer" or "engineer"\n• Different time filter (try "Any Time")\n• These APIs focus on remote tech jobs`,
+          tags: ['No Results', 'Try Again'],
+          salary: 'N/A',
+          postedDate: 'N/A',
+          sourceUrl: 'https://remoteok.com',
+          isWishlisted: false
+        }];
+      }
+
+      return uniqueJobs;
+
     } catch (error) {
       console.error('Error in job scraping service:', error);
       return [];
     }
   }
 
-  // Utility method to shuffle array
-  private shuffleArray<T>(array: T[]): T[] {
-    const shuffled = [...array];
-    for (let i = shuffled.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  private getHoursFromPostedDate(postedDate: string): number {
+    if (postedDate.includes('Just now')) return 0;
+    if (postedDate.includes('hour')) {
+      const match = postedDate.match(/(\d+)/);
+      return match ? parseInt(match[1]) : 1;
     }
-    return shuffled;
+    if (postedDate.includes('day')) {
+      const match = postedDate.match(/(\d+)/);
+      return match ? parseInt(match[1]) * 24 : 24;
+    }
+    if (postedDate.includes('week')) {
+      const match = postedDate.match(/(\d+)/);
+      return match ? parseInt(match[1]) * 168 : 168;
+    }
+    return 9999;
+  }
+
+  // Search with filters helper
+  public async searchWithFilters(options: {
+    searchTerm: string;
+    location?: string;
+    timeFilter?: TimeFilter;
+  }): Promise<Job[]> {
+    return this.scrapeJobs(
+      options.searchTerm,
+      options.location || '',
+      options.timeFilter || TimeFilter.ANY_TIME
+    );
   }
 }
 

@@ -58,8 +58,6 @@ export class ProxyService {
   async extractFromURL(url: string): Promise<any> {
     // Extract what we can from the URL structure itself
     const urlObj = new URL(url);
-    const pathParts = urlObj.pathname.split('/');
-    
     const result: any = {
       domain: urlObj.hostname,
       path: urlObj.pathname,

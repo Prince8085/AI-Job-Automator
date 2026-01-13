@@ -2,7 +2,13 @@
 import React, { createContext, useState, useContext, ReactNode, useCallback, useEffect } from 'react';
 import { useAuth, useUser } from '@clerk/clerk-react';
 import { UserProfile, Job, TrackedJob, ApplicationStatus, ToastMessage } from '../types';
-import { MOCK_USER_PROFILE, MOCK_JOBS, MOCK_TRACKED_JOBS } from '../constants';
+import {
+  getInitialUserProfile,
+  STORAGE_KEYS,
+  saveToStorage,
+  loadFromStorage,
+  DEMO_USER_PROFILE
+} from '../constants';
 import { searchLiveJobs } from '../services/geminiService';
 
 interface JobContextType {
@@ -14,6 +20,7 @@ interface JobContextType {
   trackedJobs: TrackedJob[];
   getJobById: (id: string) => Job | TrackedJob | undefined;
   trackJob: (job: Job) => void;
+  untrackJob: (jobId: string) => void;
   updateJobStatus: (jobId: string, status: ApplicationStatus) => void;
   saveTrackedJobData: (jobId: string, data: Partial<Omit<TrackedJob, 'id' | 'status'>>) => void;
   // Toasts
@@ -29,8 +36,11 @@ interface JobContextType {
   liveSearchResults: Job[];
   isSearching: boolean;
   searchError: string;
-  performLiveSearch: (searchTerm: string, location: string) => Promise<void>;
+  performLiveSearch: (searchTerm: string, location: string, timeFilter?: string) => Promise<void>;
   clearLiveSearch: () => void;
+  // Data Management
+  resetAllData: () => void;
+  isLoading: boolean;
 }
 
 const JobContext = createContext<JobContextType | undefined>(undefined);
@@ -38,50 +48,78 @@ const JobContext = createContext<JobContextType | undefined>(undefined);
 export const JobProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const { isSignedIn, userId } = useAuth();
   const { user } = useUser();
-  
-  const [userProfile, setUserProfile] = useState<UserProfile>(MOCK_USER_PROFILE);
-  const [allJobs, setAllJobs] = useState<Job[]>(MOCK_JOBS);
-  const [trackedJobs, setTrackedJobs] = useState<TrackedJob[]>([]);
+  const demoMode = (import.meta.env.VITE_DEMO_MODE ?? 'true') === 'true';
+
+  // Initialize state from localStorage or defaults
+  const [userProfile, setUserProfile] = useState<UserProfile>(() => {
+    const stored = loadFromStorage<UserProfile | null>(STORAGE_KEYS.USER_PROFILE, null);
+    return stored || getInitialUserProfile();
+  });
+
+  const [allJobs, setAllJobs] = useState<Job[]>([]);
+
+  const [trackedJobs, setTrackedJobs] = useState<TrackedJob[]>(() => {
+    return loadFromStorage<TrackedJob[]>(STORAGE_KEYS.TRACKED_JOBS, []);
+  });
+
+  const [wishlistedJobs, setWishlistedJobs] = useState<Job[]>(() => {
+    return loadFromStorage<Job[]>(STORAGE_KEYS.WISHLISTED_JOBS, []);
+  });
+
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
-  const [wishlistedJobs, setWishlistedJobs] = useState<Job[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  
-  // State for preserving live search results
+
+  // State for live search results
   const [liveSearchResults, setLiveSearchResults] = useState<Job[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [searchError, setSearchError] = useState('');
 
-  // Load user data when authenticated
+  // Persist tracked jobs to localStorage whenever they change
+  useEffect(() => {
+    saveToStorage(STORAGE_KEYS.TRACKED_JOBS, trackedJobs);
+  }, [trackedJobs]);
+
+  // Persist wishlisted jobs to localStorage
+  useEffect(() => {
+    saveToStorage(STORAGE_KEYS.WISHLISTED_JOBS, wishlistedJobs);
+  }, [wishlistedJobs]);
+
+  // Persist user profile to localStorage
+  useEffect(() => {
+    saveToStorage(STORAGE_KEYS.USER_PROFILE, userProfile);
+  }, [userProfile]);
+
+  // Load user data when authenticated with Clerk
   useEffect(() => {
     const loadUserData = async () => {
-      if (!isSignedIn || !userId || !user) return;
-      
+      if (!isSignedIn || !userId || !user) {
+        // If not signed in but in demo mode, use demo profile
+        if (demoMode && !userProfile.name) {
+          setUserProfile(DEMO_USER_PROFILE);
+        }
+        return;
+      }
+
       setIsLoading(true);
       try {
-        // Mock user profile creation (replace with actual database calls when backend is ready)
-        const mockUserProfile = {
-          ...MOCK_USER_PROFILE,
+        // Update profile with Clerk user data
+        const updatedProfile: UserProfile = {
+          ...userProfile,
+          id: userProfile.id || crypto.randomUUID(),
           clerkUserId: userId,
-          name: user.fullName || user.firstName || 'User',
-          email: user.primaryEmailAddress?.emailAddress || '',
-          phone: user.primaryPhoneNumber?.phoneNumber || '',
-          profilePictureUrl: user.imageUrl || '',
+          name: user.fullName || user.firstName || userProfile.name || 'User',
+          email: user.primaryEmailAddress?.emailAddress || userProfile.email,
+          phone: user.primaryPhoneNumber?.phoneNumber || userProfile.phone,
+          profilePictureUrl: user.imageUrl || userProfile.profilePictureUrl,
+          updatedAt: new Date()
         };
-        
-        setUserProfile(mockUserProfile);
-        
-        // Load mock tracked jobs for the user
-        setTrackedJobs(MOCK_TRACKED_JOBS);
-        
-        // Load mock wishlisted jobs
-        const mockWishlistedJobs = MOCK_JOBS.slice(0, 3); // First 3 jobs as wishlisted
-        setWishlistedJobs(mockWishlistedJobs);
-        
-        console.log('Mock user data loaded successfully');
-        
+
+        setUserProfile(updatedProfile);
+        console.log('User profile synced with Clerk');
+
       } catch (error) {
         console.error('Error loading user data:', error);
-        showToast('Failed to load user data', 'error');
+        showToast('Failed to sync with account', 'error');
       } finally {
         setIsLoading(false);
       }
@@ -90,125 +128,81 @@ export const JobProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     loadUserData();
   }, [isSignedIn, userId, user]);
 
-  const resetData = () => {
-    setUserProfile(MOCK_USER_PROFILE);
-    setAllJobs(MOCK_JOBS);
+  const resetAllData = useCallback(() => {
+    setUserProfile(getInitialUserProfile());
+    setAllJobs([]);
     setTrackedJobs([]);
     setWishlistedJobs([]);
     setLiveSearchResults([]);
     setSearchError('');
     setIsSearching(false);
-  };
-  
-  const logout = () => {
-    resetData();
-  };
+    // Clear localStorage
+    Object.values(STORAGE_KEYS).forEach(key => localStorage.removeItem(key));
+    showToast('All data has been reset', 'info');
+  }, []);
 
-  const updateUserProfile = async (profile: UserProfile) => {
-    if (!isSignedIn || !userId) {
-      setUserProfile(profile);
-      return;
-    }
-
-    try {
-      // Mock update user profile (replace with actual database calls when backend is ready)
-      setUserProfile(profile);
-      console.log('Mock user profile updated:', profile);
-      showToast('Profile updated successfully!', 'success');
-    } catch (error) {
-      console.error('Error updating user profile:', error);
-      showToast('Failed to update profile', 'error');
-    }
-  };
+  const updateUserProfile = useCallback((profile: UserProfile) => {
+    const updatedProfile = {
+      ...profile,
+      updatedAt: new Date()
+    };
+    setUserProfile(updatedProfile);
+    showToast('Profile updated successfully!', 'success');
+  }, []);
 
   const getJobById = useCallback((id: string): Job | TrackedJob | undefined => {
-    // Search order is important for correct data retrieval
+    // Search in tracked jobs first (has most data)
     const tracked = trackedJobs.find(j => j.id === id);
     if (tracked) return tracked;
+
+    // Search in live search results
     const live = liveSearchResults.find(j => j.id === id);
     if (live) return live;
+
+    // Search in wishlisted jobs
     const wishlisted = wishlistedJobs.find(j => j.id === id);
     if (wishlisted) return wishlisted;
+
+    // Search in all jobs
     return allJobs.find(j => j.id === id);
   }, [allJobs, trackedJobs, wishlistedJobs, liveSearchResults]);
 
-  const trackJob = async (job: Job) => {
-    if (!isSignedIn || !userId) {
-      // Fallback to local state for non-authenticated users
-      if (!trackedJobs.some(t => t.id === job.id)) {
-        const newTrackedJob: TrackedJob = { ...job, status: ApplicationStatus.SAVED, notes: '' };
-        setTrackedJobs(prev => [newTrackedJob, ...prev]);
-        showToast('Job saved to tracker!', 'success');
-      }
-      return;
-    }
-
+  const trackJob = useCallback((job: Job) => {
     if (trackedJobs.some(t => t.id === job.id)) {
       showToast('Job is already tracked!', 'info');
       return;
     }
 
-    try {
-      // Mock job tracking (replace with actual database calls when backend is ready)
-      const newTrackedJob: TrackedJob = { ...job, status: ApplicationStatus.SAVED, notes: '' };
-      setTrackedJobs(prev => [newTrackedJob, ...prev]);
-      console.log('Mock job tracked:', newTrackedJob);
-      showToast('Job saved to tracker!', 'success');
-    } catch (error) {
-      console.error('Error tracking job:', error);
-      showToast('Failed to save job', 'error');
-    }
-  };
+    const newTrackedJob: TrackedJob = {
+      ...job,
+      status: ApplicationStatus.SAVED,
+      notes: ''
+    };
 
-  const updateJobStatus = async (jobId: string, status: ApplicationStatus) => {
-    if (!isSignedIn || !userId) {
-      // Fallback to local state for non-authenticated users
-      setTrackedJobs(prev =>
-        prev.map(job =>
-          job.id === jobId ? { ...job, status } : job
-        )
-      );
-      return;
-    }
+    setTrackedJobs(prev => [newTrackedJob, ...prev]);
+    showToast('Job saved to tracker!', 'success');
+  }, [trackedJobs]);
 
-    try {
-      // Mock update job status (replace with actual database calls when backend is ready)
-      setTrackedJobs(prev =>
-        prev.map(job =>
-          job.id === jobId ? { ...job, status } : job
-        )
-      );
-      console.log('Mock job status updated:', { jobId, status });
-    } catch (error) {
-      console.error('Error updating job status:', error);
-      showToast('Failed to update job status', 'error');
-    }
-  };
+  const untrackJob = useCallback((jobId: string) => {
+    setTrackedJobs(prev => prev.filter(job => job.id !== jobId));
+    showToast('Job removed from tracker', 'info');
+  }, []);
 
-  const saveTrackedJobData = async (jobId: string, data: Partial<Omit<TrackedJob, 'id'>>) => {
-    if (!isSignedIn || !userId) {
-      // Fallback to local state for non-authenticated users
-      setTrackedJobs(prev =>
-        prev.map(job =>
-          job.id === jobId ? { ...job, ...data } : job
-        )
-      );
-      return;
-    }
+  const updateJobStatus = useCallback((jobId: string, status: ApplicationStatus) => {
+    setTrackedJobs(prev =>
+      prev.map(job =>
+        job.id === jobId ? { ...job, status } : job
+      )
+    );
+  }, []);
 
-    try {
-      // Mock save tracked job data (replace with actual database calls when backend is ready)
-      setTrackedJobs(prev =>
-        prev.map(job =>
-          job.id === jobId ? { ...job, ...data } : job
-        )
-      );
-      console.log('Mock tracked job data saved:', { jobId, data });
-    } catch (error) {
-      console.error('Error saving tracked job data:', error);
-      showToast('Failed to save job data', 'error');
-    }
-  };
+  const saveTrackedJobData = useCallback((jobId: string, data: Partial<Omit<TrackedJob, 'id'>>) => {
+    setTrackedJobs(prev =>
+      prev.map(job =>
+        job.id === jobId ? { ...job, ...data } : job
+      )
+    );
+  }, []);
 
   const showToast = useCallback((message: string, type: ToastMessage['type'] = 'info') => {
     const id = Date.now();
@@ -217,132 +211,97 @@ export const JobProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       removeToast(id);
     }, 5000);
   }, []);
-  
-  const removeToast = (id: number) => {
-      setToasts(prevToasts => prevToasts.filter(toast => toast.id !== id));
-  };
+
+  const removeToast = useCallback((id: number) => {
+    setToasts(prevToasts => prevToasts.filter(toast => toast.id !== id));
+  }, []);
 
   const isJobWishlisted = useCallback((jobId: string) => {
     return wishlistedJobs.some(job => job.id === jobId);
   }, [wishlistedJobs]);
 
-  const toggleWishlist = useCallback(async (job: Job) => {
+  const toggleWishlist = useCallback((job: Job) => {
     const isCurrentlyWishlisted = isJobWishlisted(job.id);
-    
-    if (!isSignedIn || !userId) {
-      // Fallback to local state for non-authenticated users
-      setWishlistedJobs(prev => {
-          if (isCurrentlyWishlisted) {
-              showToast('Removed from wishlist', 'info');
-              return prev.filter(wJob => wJob.id !== job.id);
-          } else {
-              showToast('Added to wishlist!', 'success');
-              return [...prev, { ...job, isWishlisted: true }];
-          }
-      });
-      
-      // Also update the job in liveSearchResults if it exists there
-      setLiveSearchResults(prev => prev.map(liveJob => 
-        liveJob.id === job.id ? { ...liveJob, isWishlisted: !isCurrentlyWishlisted } : liveJob
-      ));
-      return;
+
+    if (isCurrentlyWishlisted) {
+      setWishlistedJobs(prev => prev.filter(wJob => wJob.id !== job.id));
+      showToast('Removed from wishlist', 'info');
+    } else {
+      setWishlistedJobs(prev => [...prev, { ...job, isWishlisted: true }]);
+      showToast('Added to wishlist!', 'success');
     }
 
-    try {
-      // Mock wishlist toggle (replace with actual database calls when backend is ready)
-      if (isCurrentlyWishlisted) {
-        setWishlistedJobs(prev => prev.filter(w => w.id !== job.id));
-        showToast('Removed from wishlist', 'info');
-        console.log('Mock job removed from wishlist:', job.id);
-      } else {
-        setWishlistedJobs(prev => [...prev, { ...job, isWishlisted: true }]);
-        showToast('Added to wishlist!', 'success');
-        console.log('Mock job added to wishlist:', job.id);
-      }
-      
-      // Also update the job in liveSearchResults if it exists there
-      setLiveSearchResults(prev => prev.map(liveJob => 
-        liveJob.id === job.id ? { ...liveJob, isWishlisted: !isCurrentlyWishlisted } : liveJob
-      ));
-    } catch (error) {
-      console.error('Error toggling wishlist:', error);
-      showToast('Failed to update wishlist', 'error');
-    }
-  }, [showToast, isJobWishlisted, isSignedIn, userId, userProfile.id]);
+    // Update in live search results too
+    setLiveSearchResults(prev => prev.map(liveJob =>
+      liveJob.id === job.id ? { ...liveJob, isWishlisted: !isCurrentlyWishlisted } : liveJob
+    ));
+  }, [isJobWishlisted, showToast]);
 
-  const addAllToWishlist = useCallback(async (jobs: Job[]) => {
+  const addAllToWishlist = useCallback((jobs: Job[]) => {
     const newWishlistedJobs = jobs.filter(job => !isJobWishlisted(job.id));
-    
+
     if (newWishlistedJobs.length === 0) {
       showToast('All jobs are already in wishlist', 'info');
       return;
     }
 
-    if (!isSignedIn || !userId) {
-      // Fallback to local state for non-authenticated users
-      setWishlistedJobs(prev => [
-        ...prev,
-        ...newWishlistedJobs.map(job => ({ ...job, isWishlisted: true }))
-      ]);
-      showToast(`Added ${newWishlistedJobs.length} jobs to wishlist!`, 'success');
+    setWishlistedJobs(prev => [
+      ...prev,
+      ...newWishlistedJobs.map(job => ({ ...job, isWishlisted: true }))
+    ]);
+
+    showToast(`Added ${newWishlistedJobs.length} jobs to wishlist!`, 'success');
+
+    // Update in live search results
+    setLiveSearchResults(prev => prev.map(liveJob => ({ ...liveJob, isWishlisted: true })));
+  }, [isJobWishlisted, showToast]);
+
+  // Live search using FREE Job APIs
+  const performLiveSearch = useCallback(async (searchTerm: string, location: string, timeFilter: string = 'any_time') => {
+    if (!searchTerm && !location) {
+      setSearchError("Please enter a search term or location.");
       return;
     }
 
-    try {
-      // Mock add all to wishlist (replace with actual database calls when backend is ready)
-      setWishlistedJobs(prev => [
-        ...prev,
-        ...newWishlistedJobs.map(job => ({ ...job, isWishlisted: true }))
-      ]);
-
-      console.log('Mock jobs added to wishlist:', newWishlistedJobs.map(j => j.id));
-      showToast(`Added ${newWishlistedJobs.length} jobs to wishlist!`, 'success');
-    } catch (error) {
-      console.error('Error adding jobs to wishlist:', error);
-      showToast('Failed to add jobs to wishlist', 'error');
-    }
-
-    setLiveSearchResults(prev => prev.map(liveJob => ({...liveJob, isWishlisted: true})));
-  }, [isJobWishlisted, showToast, isSignedIn, userId, userProfile.id]);
-
-  // Live search logic moved to context
-  const performLiveSearch = async (searchTerm: string, location: string) => {
-    if (!searchTerm && !location) {
-        setSearchError("Please enter a search term or location.");
-        return;
-    }
     setIsSearching(true);
     setSearchError('');
     setLiveSearchResults([]);
+
     try {
-        const results = await searchLiveJobs(searchTerm, location);
-        // Sync wishlist status
-        const syncedResults = results.map(job => ({
-            ...job,
-            isWishlisted: isJobWishlisted(job.id)
-        }));
-        setLiveSearchResults(syncedResults);
+      const results = await searchLiveJobs(searchTerm, location, timeFilter);
+
+      // Sync wishlist status with results
+      const syncedResults = results.map(job => ({
+        ...job,
+        isWishlisted: isJobWishlisted(job.id)
+      }));
+
+      setLiveSearchResults(syncedResults);
+
+      if (syncedResults.length === 0) {
+        setSearchError('No jobs found. Try different keywords or location.');
+      }
     } catch (error: any) {
-        setSearchError(error.message || 'An unexpected error occurred.');
+      console.error('Search error:', error);
+      setSearchError(error.message || 'An unexpected error occurred.');
     } finally {
-        setIsSearching(false);
+      setIsSearching(false);
     }
-  };
+  }, [isJobWishlisted]);
 
-  const clearLiveSearch = () => {
-      setLiveSearchResults([]);
-      setSearchError('');
-  };
+  const clearLiveSearch = useCallback(() => {
+    setLiveSearchResults([]);
+    setSearchError('');
+  }, []);
 
-
-  const value = {
-    logout,
+  const value: JobContextType = {
     userProfile,
     updateUserProfile,
     allJobs,
     trackedJobs,
     getJobById,
     trackJob,
+    untrackJob,
     updateJobStatus,
     saveTrackedJobData,
     toasts,
@@ -357,6 +316,8 @@ export const JobProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     searchError,
     performLiveSearch,
     clearLiveSearch,
+    resetAllData,
+    isLoading,
   };
 
   return <JobContext.Provider value={value}>{children}</JobContext.Provider>;

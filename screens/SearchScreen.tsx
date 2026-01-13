@@ -19,8 +19,8 @@ enum TimeFilter {
 
 const SearchScreen: React.FC = () => {
   const navigate = useNavigate();
-  const { 
-    allJobs, 
+  const {
+    allJobs,
     addAllToWishlist,
     liveSearchResults,
     isSearching,
@@ -28,7 +28,7 @@ const SearchScreen: React.FC = () => {
     performLiveSearch,
     clearLiveSearch,
   } = useJobData();
-  
+
   const [searchTerm, setSearchTerm] = useState('');
   const [location, setLocation] = useState('');
   const [timeFilter, setTimeFilter] = useState<TimeFilter>(TimeFilter.ANY_TIME);
@@ -41,21 +41,21 @@ const SearchScreen: React.FC = () => {
 
   const filteredMockJobs = useMemo(() => {
     return allJobs.filter(job => {
-      const termMatch = searchTerm.toLowerCase() === '' || 
-                        job.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                        job.company.toLowerCase().includes(searchTerm.toLowerCase());
+      const termMatch = searchTerm.toLowerCase() === '' ||
+        job.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        job.company.toLowerCase().includes(searchTerm.toLowerCase());
       const locationMatch = location.toLowerCase() === '' ||
-                            job.location.toLowerCase().includes(location.toLowerCase());
+        job.location.toLowerCase().includes(location.toLowerCase());
       return termMatch && locationMatch;
     });
   }, [allJobs, searchTerm, location]);
-  
+
   const handleJobSelect = (job: Job) => {
     navigate(`/job/${job.id}`, { state: { jobData: job } });
   };
 
   const handleLiveSearch = () => {
-    performLiveSearch(searchTerm, location);
+    performLiveSearch(searchTerm, location, timeFilter);
   };
 
   return (
@@ -82,7 +82,7 @@ const SearchScreen: React.FC = () => {
               className="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
               aria-label="Search by location"
             />
-             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-text-secondary"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-text-secondary"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" /><circle cx="12" cy="10" r="3" /></svg>
           </div>
           <div className="relative mt-3">
             <select
@@ -97,7 +97,7 @@ const SearchScreen: React.FC = () => {
               <option value={TimeFilter.LAST_WEEK}>Last week</option>
               <option value={TimeFilter.LAST_MONTH}>Last month</option>
             </select>
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-text-secondary"><circle cx="12" cy="12" r="3"/><path d="M12 1v6m0 6v6"/></svg>
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-text-secondary"><circle cx="12" cy="12" r="3" /><path d="M12 1v6m0 6v6" /></svg>
           </div>
           <button
             onClick={handleLiveSearch}
@@ -105,7 +105,7 @@ const SearchScreen: React.FC = () => {
             className="mt-4 w-full flex items-center justify-center py-3 px-6 text-white font-bold bg-gradient-primary rounded-lg hover:opacity-90 transition disabled:opacity-50 disabled:cursor-wait"
           >
             <SparklesIcon className="w-5 h-5 mr-2" />
-            {isSearching ? 'Searching...' : 'Search Live Jobs with AI'}
+            {isSearching ? 'Searching FREE APIs...' : '🔍 Search Real Jobs (FREE & Unlimited)'}
           </button>
         </div>
 
@@ -120,16 +120,16 @@ const SearchScreen: React.FC = () => {
         {searchError && <div className="bg-red-100 text-red-700 p-4 rounded-lg">{searchError}</div>}
 
         {liveSearchResults.length > 0 && (
-           <div>
+          <div>
             <div className="flex justify-between items-center mb-4">
-                <div>
-                    <h3 className="text-xl font-bold text-text-primary">
-                        AI-Powered Job Results
-                    </h3>
-                    <button onClick={clearLiveSearch} className="text-sm text-primary hover:underline">
-                        Clear Search
-                    </button>
-                </div>
+              <div>
+                <h3 className="text-xl font-bold text-text-primary">
+                  🆓 Real Jobs ({liveSearchResults.length} found)
+                </h3>
+                <button onClick={clearLiveSearch} className="text-sm text-primary hover:underline">
+                  Clear Search
+                </button>
+              </div>
               <button
                 onClick={() => addAllToWishlist(liveSearchResults)}
                 className="flex-shrink-0 flex items-center px-4 py-2 text-sm font-semibold text-primary bg-indigo-100 rounded-lg hover:bg-indigo-200 transition"

@@ -29,27 +29,38 @@ import ResumeFeedbackScreen from './screens/ResumeFeedbackScreen';
 import EasyApplyScreen from './screens/EasyApplyScreen';
 import WishlistScreen from './screens/WishlistScreen';
 import AutofillResumeScreen from './screens/AutofillResumeScreen';
+import InternshipCalendarScreen from './screens/InternshipCalendarScreen';
+import LandingPage from './screens/LandingPage';
+import PricingScreen from './screens/PricingScreen';
+import AutoApplyAgentScreen from './screens/AutoApplyAgentScreen';
+import LinkedInScraperScreen from './screens/LinkedInScraperScreen';
+import SalaryCalculatorScreen from './screens/SalaryCalculatorScreen';
+import JobAlertsScreen from './screens/JobAlertsScreen';
+import { CreditProvider } from './contexts/CreditContext';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isSignedIn, isLoaded } = useAuth();
-  
-  if (!isLoaded) {
+  const demoMode = (import.meta.env.VITE_DEMO_MODE ?? 'true') === 'true';
+
+  if (!isLoaded && !demoMode) {
     return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
   }
-  
-  if (!isSignedIn) {
+
+  const allow = isSignedIn || demoMode;
+  if (!allow) {
     return <Navigate to="/" replace />;
   }
-  
+
   return <>{children}</>;
 };
 
 const AppContent: React.FC = () => {
   const location = useLocation();
   const { isSignedIn, isLoaded } = useAuth();
-  const showHeaderAndNav = isSignedIn && location.pathname !== '/feedback';
-  
-  if (!isLoaded) {
+  const demoMode = (import.meta.env.VITE_DEMO_MODE ?? 'true') === 'true';
+  const showHeaderAndNav = (isSignedIn || demoMode) && location.pathname !== '/feedback';
+
+  if (!isLoaded && !demoMode) {
     return <div className="flex items-center justify-center min-h-screen bg-indigo-600 text-white">Loading...</div>;
   }
 
@@ -57,7 +68,7 @@ const AppContent: React.FC = () => {
     <div className="bg-background min-h-screen font-sans">
       {showHeaderAndNav && <Header />}
       <ToastContainer />
-      <main className={`pb-20 ${showHeaderAndNav ? 'pt-16' : ''}`}>
+      <main className={`pb-4 ${showHeaderAndNav ? 'pt-20' : ''}`}>
         <Routes>
           <Route path="/" element={<WelcomeScreen />} />
           <Route path="/dashboard" element={<ProtectedRoute><DashboardScreen /></ProtectedRoute>} />
@@ -82,6 +93,15 @@ const AppContent: React.FC = () => {
           <Route path="/feedback" element={<ResumeFeedbackScreen />} />
           <Route path="/easy-apply/:id" element={<ProtectedRoute><EasyApplyScreen /></ProtectedRoute>} />
           <Route path="/autofill-resume" element={<ProtectedRoute><AutofillResumeScreen /></ProtectedRoute>} />
+          <Route path="/calendar" element={<ProtectedRoute><InternshipCalendarScreen /></ProtectedRoute>} />
+          <Route path="/interview-coach" element={<ProtectedRoute><InterviewPrepScreen /></ProtectedRoute>} />
+          <Route path="/resume-builder" element={<ProtectedRoute><ResumeBuilderScreen /></ProtectedRoute>} />
+          <Route path="/landing" element={<LandingPage />} />
+          <Route path="/pricing" element={<ProtectedRoute><PricingScreen /></ProtectedRoute>} />
+          <Route path="/auto-apply" element={<ProtectedRoute><AutoApplyAgentScreen /></ProtectedRoute>} />
+          <Route path="/linkedin-scraper" element={<ProtectedRoute><LinkedInScraperScreen /></ProtectedRoute>} />
+          <Route path="/salary-calculator" element={<ProtectedRoute><SalaryCalculatorScreen /></ProtectedRoute>} />
+          <Route path="/job-alerts" element={<ProtectedRoute><JobAlertsScreen /></ProtectedRoute>} />
           <Route path="*" element={<Navigate to="/dashboard" />} />
         </Routes>
       </main>
@@ -91,18 +111,21 @@ const AppContent: React.FC = () => {
 };
 
 const App: React.FC = () => {
-  const clerkPubKey = (import.meta.env as any).VITE_CLERK_PUBLISHABLE_KEY;
-  
-  if (!clerkPubKey) {
+  const clerkPubKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
+  const demoMode = (import.meta.env.VITE_DEMO_MODE ?? 'true') === 'true';
+
+  if (!clerkPubKey && !demoMode) {
     throw new Error('Missing Clerk Publishable Key');
   }
-  
+
   return (
-    <ClerkProvider publishableKey={clerkPubKey}>
+    <ClerkProvider publishableKey={clerkPubKey || 'demo_key'}>
       <JobProvider>
-        <HashRouter>
-          <AppContent />
-        </HashRouter>
+        <CreditProvider>
+          <HashRouter>
+            <AppContent />
+          </HashRouter>
+        </CreditProvider>
       </JobProvider>
     </ClerkProvider>
   );

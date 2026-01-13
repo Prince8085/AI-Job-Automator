@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm';
 import { db } from '../connection';
-import { userProfiles, insertUserProfileSchema, selectUserProfileSchema } from '../schema';
+import { userProfiles, insertUserProfileSchema } from '../schema';
 import type { UserProfile } from '../../types';
 
 // Check if we're in a browser environment

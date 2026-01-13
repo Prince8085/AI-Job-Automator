@@ -7,8 +7,8 @@ import { useJobData } from '../contexts/JobDataContext';
 import { generateStructuredATSResume } from '../services/geminiService';
 import ScreenWrapper from '../components/ScreenWrapper';
 import LoadingSpinner from '../components/LoadingSpinner';
-import { Job, StructuredResume, TrackedJob } from '../types';
-import { ClipboardCopyIcon, CheckIcon, DocumentPdfIcon, ChatBubbleLeftRightIcon } from '../components/icons';
+import { Job, StructuredResume } from '../types';
+import { CheckIcon, DocumentPdfIcon, ChatBubbleLeftRightIcon } from '../components/icons';
 
 interface ResumeTemplate {
   id: string;
@@ -376,10 +376,10 @@ const ResumeBuilderScreen: React.FC = () => {
       });
     }
 
-    doc.save(`${userProfile.name.replace(' ', '_')}_Resume_for_${job.company}.pdf`);
+    doc.save(`${userProfile.name.replace(' ', '_')}_Resume_for_${job?.company || 'Job'}.pdf`);
     showToast('PDF resume downloaded!', 'success');
     
-    if (trackedJobs.some(trackedJob => trackedJob.id === job.id)) {
+    if (job && trackedJobs.some(trackedJob => trackedJob.id === job.id)) {
       saveTrackedJobData(job.id, { structuredResume });
       showToast('Saved structured resume to tracker!', 'info');
     }
@@ -390,7 +390,7 @@ const ResumeBuilderScreen: React.FC = () => {
     setIsGeneratingPdf(true);
     setGeneratedResume(null);
     try {
-      const structuredResume = await generateStructuredATSResume(userProfile, job.description);
+      const structuredResume = await generateStructuredATSResume(userProfile, job?.description || '');
       setGeneratedResume(structuredResume);
       
       const doc = new jsPDF('p', 'pt', 'a4');
@@ -552,8 +552,8 @@ const ResumeBuilderScreen: React.FC = () => {
           
           <button
             onClick={() => {
-              if (job && structuredResume) {
-                const analysis = calculateATSScore(structuredResume, job.description);
+              if (job && generatedResume) {
+                const analysis = calculateATSScore(generatedResume, job.description);
                 setAtsScore(analysis.score);
                 setAtsAnalysis(analysis);
               }

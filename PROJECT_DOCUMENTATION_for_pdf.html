@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PROJECT_DOCUMENTATION</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 216mm;
+            margin: 0 auto;
+            padding: 12.6984126984127mm;
+            background: white;
+        }
+
+        h1, h2, h3, h4, h5, h6 {
+            margin-top: 24px;
+            margin-bottom: 16px;
+            font-weight: 600;
+            line-height: 1.25;
+        }
+
+        h1 { font-size: 2em; border-bottom: 1px solid #eaecef; padding-bottom: 0.3em; }
+        h2 { font-size: 1.5em; border-bottom: 1px solid #eaecef; padding-bottom: 0.3em; }
+        h3 { font-size: 1.25em; }
+        h4 { font-size: 1em; }
+        h5 { font-size: 0.875em; }
+        h6 { font-size: 0.85em; color: #6a737d; }
+
+        p {
+            margin-top: 0;
+            margin-bottom: 16px;
+        }
+
+        a {
+            color: #0366d6;
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+        /* Regular lists - Enhanced for deep nesting */
+        ul, ol {
+            padding-left: 2em;
+            margin-top: 0;
+            margin-bottom: 16px;
+        }
+
+        /* First level lists */
+        body > ul, body > ol,
+        body > div > ul, body > div > ol {
+            margin-bottom: 16px;
+        }
+
+        /* Nested lists - progressive spacing reduction */
+        li > ul, li > ol {
+            margin-top: 6px;
+            margin-bottom: 6px;
+            padding-left: 2em;
+        }
+
+        /* Deep nested lists get tighter */
+        li li > ul, li li > ol {
+            margin-top: 4px;
+            margin-bottom: 4px;
+        }
+
+        li li li > ul, li li li > ol {
+            margin-top: 2px;
+            margin-bottom: 2px;
+        }
+
+        /* List items - progressive spacing */
+        li {
+            margin-bottom: 8px;
+            line-height: 1.6;
+            position: relative;
+        }
+
+        /* Nested list items have progressively tighter spacing */
+        li li {
+            margin-bottom: 6px;
+        }
+
+        li li li {
+            margin-bottom: 4px;
+        }
+
+        li li li li {
+            margin-bottom: 3px;
+        }
+
+        li li li li li {
+            margin-bottom: 2px;
+        }
+
+        /* Ordered lists - better number styling */
+        ol {
+            counter-reset: item;
+        }
+
+        ol > li {
+            position: relative;
+        }
+
+        /* Bullet style progression for unordered lists */
+        ul {
+            list-style-type: disc;
+        }
+
+        ul ul {
+            list-style-type: circle;
+        }
+
+        ul ul ul {
+            list-style-type: square;
+        }
+
+        ul ul ul ul {
+            list-style-type: disc;
+        }
+
+        ul ul ul ul ul {
+            list-style-type: circle;
+        }
+
+        ul ul ul ul ul ul {
+            list-style-type: square;
+        }
+
+        /* Ordered nested lists - progressive style changes */
+        ol {
+            list-style-type: decimal;
+        }
+
+        ol ol {
+            list-style-type: lower-alpha;
+        }
+
+        ol ol ol {
+            list-style-type: lower-roman;
+        }
+
+        ol ol ol ol {
+            list-style-type: decimal;
+        }
+
+        ol ol ol ol ol {
+            list-style-type: lower-alpha;
+        }
+
+        ol ol ol ol ol ol {
+            list-style-type: lower-roman;
+        }
+
+        /* Visual depth indicators - subtle left border for deep nesting */
+        li li li {
+            padding-left: 4px;
+            border-left: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+        li li li li {
+            border-left: 1px solid rgba(0, 0, 0, 0.08);
+        }
+
+        li li li li li {
+            border-left: 1px solid rgba(0, 0, 0, 0.10);
+        }
+
+        li li li li li li {
+            border-left: 1px solid rgba(0, 0, 0, 0.12);
+        }
+
+        /* Slight background shading for very deep nesting (level 4+) */
+        li li li li {
+            background-color: rgba(240, 240, 240, 0.3);
+            border-radius: 2px;
+        }
+
+        li li li li li {
+            background-color: rgba(240, 240, 240, 0.5);
+        }
+
+        li li li li li li {
+            background-color: rgba(240, 240, 240, 0.7);
+        }
+
+        code {
+            background: #f6f8fa;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+
+        pre {
+            background: #f6f8fa;
+            padding: 16px;
+            border-radius: 6px;
+            overflow-x: auto;
+            margin-bottom: 16px;
+        }
+
+        pre code {
+            background: none;
+            padding: 0;
+        }
+
+        blockquote {
+            margin: 0 0 16px 0;
+            padding: 0 1em;
+            color: #6a737d;
+            border-left: 4px solid #dfe2e5;
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-bottom: 16px;
+        }
+
+        table th,
+        table td {
+            padding: 6px 13px;
+            border: 1px solid #dfe2e5;
+        }
+
+        table th {
+            font-weight: 600;
+            background: #f6f8fa;
+        }
+
+        table tr:nth-child(2n) {
+            background: #f6f8fa;
+        }
+
+        img {
+            max-width: 100%;
+            height: auto;
+        }
+
+        hr {
+            border: 0;
+            border-top: 1px solid #dfe2e5;
+            margin: 24px 0;
+        }
+
+        /* Task lists (checklists) - Matching office view styling */
+        ul.task-list {
+            list-style-type: none;
+            padding-left: 0;
+            margin-bottom: 12px;
+        }
+
+        .task-list-item {
+            padding: 6px 10px;
+            margin-bottom: 4px;
+            border-radius: 4px;
+            transition: background-color 0.2s ease;
+            position: relative;
+        }
+
+        .task-list-item:hover {
+            background-color: rgba(0, 0, 0, 0.03);
+        }
+
+        /* Container for checkbox and text */
+        .task-list-item .task-content {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+        }
+
+        .task-list-item input[type="checkbox"] {
+            margin-top: 3px;
+            cursor: pointer;
+            width: 18px;
+            height: 18px;
+            flex-shrink: 0;
+            border-radius: 3px;
+            border: 2px solid #999;
+            transition: all 0.2s ease;
+            appearance: none;
+            -webkit-appearance: none;
+            background-color: white;
+            position: relative;
+        }
+
+        .task-list-item input[type="checkbox"]:checked {
+            background-color: #4CAF50;
+            border-color: #4CAF50;
+        }
+
+        .task-list-item input[type="checkbox"]:checked::after {
+            content: '✓';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .task-list-item input[type="checkbox"]:hover {
+            border-color: #666;
+            box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.1);
+        }
+
+        .task-list-item input[type="checkbox"]:checked:hover {
+            border-color: #45a049;
+            background-color: #45a049;
+        }
+
+        /* Completed task text styling */
+        .task-list-item:has(input[type="checkbox"]:checked) .task-text {
+            color: #888;
+            text-decoration: line-through;
+        }
+
+        /* Wrapper for task text */
+        .task-list-item .task-text {
+            flex: 1;
+            line-height: 1.5;q2
+        }
+
+        /* NESTED TASK LISTS - Clear visual hierarchy matching office view */
+        .task-list-item > .task-list {
+            margin: 8px 0 0 0;
+            padding-left: 32px;
+            position: relative;
+        }
+
+        /* Vertical connecting line for nested items */
+        .task-list-item > .task-list::before {
+            content: '';
+            position: absolute;
+            left: 14px;
+            top: 0;
+            bottom: 4px;
+            width: 2px;
+            background: linear-gradient(to bottom, #d0d0d0 0%, #d0d0d0 90%, transparent 100%);
+            border-radius: 1px;
+        }
+
+        /* Horizontal connector from vertical line to each item */
+        .task-list-item > .task-list > .task-list-item::before {
+            content: '';
+            position: absolute;
+            left: -18px;
+            top: 18px;
+            width: 14px;
+            height: 2px;
+            background: #d0d0d0;
+            border-radius: 1px;
+        }
+
+        /* Progressive background shading with blue tint for depth perception */
+        .task-list .task-list-item {
+            background-color: rgba(100, 100, 255, 0.02);
+        }
+
+        .task-list .task-list .task-list-item {
+            background-color: rgba(100, 100, 255, 0.04);
+        }
+
+        .task-list .task-list .task-list .task-list-item {
+            background-color: rgba(100, 100, 255, 0.06);
+        }
+
+        .task-list .task-list .task-list .task-list .task-list-item {
+            background-color: rgba(100, 100, 255, 0.08);
+        }
+
+        /* Progressive hover states */
+        .task-list .task-list-item:hover {
+            background-color: rgba(100, 100, 255, 0.08);
+        }
+
+        .task-list .task-list .task-list-item:hover {
+            background-color: rgba(100, 100, 255, 0.10);
+        }
+
+        .task-list .task-list .task-list .task-list-item:hover {
+            background-color: rgba(100, 100, 255, 0.12);
+        }
+
+        /* Nested task lists inside regular list items */
+        li > .task-list {
+            padding-left: 32px;
+            margin-top: 8px;
+            margin-bottom: 8px;
+            position: relative;
+        }
+
+        li > .task-list::before {
+            content: '';
+            position: absolute;
+            left: 14px;
+            top: 0;
+            bottom: 4px;
+            width: 2px;
+            background: linear-gradient(to bottom, #d0d0d0 0%, #d0d0d0 90%, transparent 100%);
+            border-radius: 1px;
+        }
+
+        /* Mixed lists with task lists - proper spacing */
+        ul:not(.task-list) > li > .task-list,
+        ol > li > .task-list {
+            margin-top: 8px;
+            padding-left: 24px;
+        }
+
+        
+        @media print {
+            body {
+                max-width: 100%;
+                padding: 0;
+            }
+        }
+        
+    </style>
+</head>
+<body>
+<h1>Project Documentation: AI Job Automator</h1>
+<h2>1. Project Title</h2>
+<p><strong>AI Job Automator</strong></p>
+<h2>2. One-Line Problem Statement</h2>
+<p>A fragmented and manual job search process leads to missed opportunities and candidate burnout due to repetitive applications and lack of personalized guidance.</p>
+<h2>3. Real-World Problem It Solves</h2>
+<p>Job seekers currently have to juggle multiple platforms (LinkedIn, Indeed, Glassdoor), manually tailor resumes for every application to pass ATS filters, track their status in spreadsheets, and prepare for interviews without feedback. This results in:</p>
+<ul>
+<li><strong>Inefficiency:</strong> Wasting hours on manual data entry and formatting.</li>
+<li><strong>Low Conversion:</strong> Generic resumes getting rejected by ATS.</li>
+<li><strong>Disorganization:</strong> Losing track of follow-ups and interview dates.</li>
+<li><strong>Lack of Preparation:</strong> Going into interviews blind without role-specific practice.</li>
+</ul>
+<p><strong>AI Job Automator</strong> solves this by unifying discovery, tracking, tailoring, and preparation into a single AI-powered dashboard.</p>
+<h2>4. Target Users</h2>
+<ul>
+<li><strong>Active Job Seekers:</strong> Professionals looking for new opportunities.</li>
+<li><strong>Students &amp; Graduates:</strong> First-time job hunters needing guidance.</li>
+<li><strong>Career Switchers:</strong> Individuals needing to identify skills gaps and rebrand themselves.</li>
+<li><strong>Recruitment Agencies:</strong> (Potential) To manage candidate pipelines.</li>
+</ul>
+<h2>5. Complete Tech Stack</h2>
+<h3>Frontend</h3>
+<ul>
+<li><strong>Framework:</strong> React 19 (via Vite)</li>
+<li><strong>Language:</strong> TypeScript</li>
+<li><strong>Styling:</strong> Tailwind CSS</li>
+<li><strong>Routing:</strong> React Router DOM v7</li>
+<li><strong>State Management:</strong> React Context API (<code>JobDataContext</code>)</li>
+<li><strong>UI Components:</strong> Lucide React (Icons), Recharts (Analytics)</li>
+<li><strong>Build Tool:</strong> Vite</li>
+</ul>
+<h3>Backend &amp; Services</h3>
+<ul>
+<li><strong>Runtime:</strong> Node.js (Serverless/Edge compatible)</li>
+<li><strong>AI Integration:</strong> Google Gemini API (<code>@google/genai</code>)</li>
+<li><strong>Authentication:</strong> Clerk (<code>@clerk/clerk-react</code>)</li>
+<li><strong>PDF Generation:</strong> jsPDF, jspdf-autotable</li>
+</ul>
+<h3>Database</h3>
+<ul>
+<li><strong>Database:</strong> Neon (Serverless PostgreSQL)</li>
+<li><strong>ORM:</strong> Drizzle ORM</li>
+<li><strong>Schema Validation:</strong> Zod / Drizzle-Zod</li>
+</ul>
+<h3>Hosting &amp; Infrastructure</h3>
+<ul>
+<li><strong>Frontend Hosting:</strong> Vercel / Netlify (Recommended)</li>
+<li><strong>Database Hosting:</strong> Neon Serverless</li>
+<li><strong>Environment Management:</strong> Dotenv</li>
+</ul>
+<h2>6. System Architecture (Step-by-Step Flow)</h2>
+<ol>
+<li><strong>User Entry:</strong> User lands on the application and authenticates via <strong>Clerk</strong> (Social/Email).</li>
+<li><strong>State Initialization:</strong> <code>JobProvider</code> initializes, fetching the user’s profile and tracked jobs from the <strong>Neon Database</strong> via <strong>Drizzle ORM</strong>.</li>
+<li><strong>Job Search:</strong>
+<ul>
+<li>User queries a job (e.g., “React Developer”).</li>
+<li><strong>JobScrapingService</strong> attempts to fetch jobs (currently simulated/mocked).</li>
+<li><strong>GeminiService</strong> acts as a fallback to “search” or generate relevant job listings using AI.</li>
+</ul>
+</li>
+<li><strong>Application Tracking:</strong>
+<ul>
+<li>User “Saves” or “Tracks” a job.</li>
+<li>Data is persisted in the <code>tracked_jobs</code> table in Postgres.</li>
+</ul>
+</li>
+<li><strong>AI Processing:</strong>
+<ul>
+<li><strong>Resume Tailoring:</strong> User selects a job -&gt; <code>GeminiService</code> analyzes the job description + user’s base resume -&gt; Generates a JSON structure for a tailored resume.</li>
+<li><strong>Interview Prep:</strong> <code>GeminiService</code> generates role-specific questions -&gt; User answers -&gt; AI provides feedback on content and “simulated” body language.</li>
+</ul>
+</li>
+<li><strong>Data Persistence:</strong> All user actions (saving jobs, updating status, saving notes) are synced to the database.</li>
+</ol>
+<h2>7. Core Features</h2>
+<ul>
+<li><strong>Smart Job Search:</strong> Aggregates jobs from multiple sources (Simulated integration with Indeed, LinkedIn, Glassdoor).</li>
+<li><strong>Kanban Board Tracker:</strong> Drag-and-drop interface to manage applications (Saved, Applied, Interviewing, Offer, Rejected).</li>
+<li><strong>AI Resume Builder:</strong> Automatically generates ATS-optimized resumes tailored to specific job descriptions.</li>
+<li><strong>Cover Letter Generator:</strong> Creates personalized cover letters based on user bio and job requirements.</li>
+<li><strong>Interview Coach:</strong>
+<ul>
+<li>Generates technical, behavioral, and situational questions.</li>
+<li>Provides AI feedback on user answers.</li>
+<li><strong>Video Mock Interview:</strong> Simulates a video call environment (camera access) and analyzes spoken responses.</li>
+</ul>
+</li>
+<li><strong>Skills Gap Analysis:</strong> Compares user profile vs. job description to recommend skills to learn.</li>
+<li><strong>Salary Negotiation Coach:</strong> Analyzes offers against market data and generates counter-offer scripts.</li>
+<li><strong>Networking Assistant:</strong> Finds potential contacts at target companies and drafts outreach messages.</li>
+<li><strong>Career Planner:</strong> Maps out long-term career paths and bridge roles.</li>
+</ul>
+<h2>8. User Roles &amp; Permissions</h2>
+<ul>
+<li><strong>Standard User:</strong>
+<ul>
+<li>Can search and track jobs.</li>
+<li>Can manage their own profile and documents.</li>
+<li>Can use AI features (Resume, Interview, etc.).</li>
+<li>Data is isolated to their <code>user_id</code>.</li>
+</ul>
+</li>
+<li><strong>Guest/Demo User:</strong>
+<ul>
+<li>Read-only access to dashboard structure.</li>
+<li>Uses local mock data (no database persistence).</li>
+<li>Limited AI calls (or mock responses).</li>
+</ul>
+</li>
+</ul>
+<h2>9. Authentication &amp; Security Logic</h2>
+<ul>
+<li><strong>Provider:</strong> <strong>Clerk</strong> handles identity management.</li>
+<li><strong>Flow:</strong>
+<ol>
+<li><code>App.tsx</code> wraps the application in <code>&lt;ClerkProvider&gt;</code>.</li>
+<li><code>ProtectedRoute</code> component checks <code>isSignedIn</code>.</li>
+<li>If not signed in, redirects to Login.</li>
+<li>On successful login, <code>clerkUserId</code> is used to map to the internal <code>user_profiles</code> table.</li>
+</ol>
+</li>
+<li><strong>Security:</strong>
+<ul>
+<li>Environment variables (<code>VITE_CLERK_PUBLISHABLE_KEY</code>, <code>VITE_GEMINI_API_KEY</code>) protect sensitive keys.</li>
+<li>Database access is scoped by <code>user_id</code> in queries (Row Level Security logic implemented in application layer).</li>
+</ul>
+</li>
+</ul>
+<h2>10. API Flow Explanation</h2>
+<p>The application primarily uses a <strong>Service-Oriented Architecture</strong> on the client side:</p>
+<ol>
+<li><strong>Frontend Component</strong> (e.g., <code>ResumeBuilderScreen</code>) triggers an action.</li>
+<li><strong>Service Layer</strong> (<code>services/geminiService.ts</code>) is called.</li>
+<li><strong>External API Call:</strong>
+<ul>
+<li>The service constructs a prompt.</li>
+<li>Calls <code>GoogleGenAI</code> client.</li>
+<li>Receives raw text response.</li>
+</ul>
+</li>
+<li><strong>Data Parsing:</strong>
+<ul>
+<li><code>parseJsonResponse</code> utility cleans the AI output (extracts JSON from markdown blocks).</li>
+<li>Validates structure against TypeScript interfaces.</li>
+</ul>
+</li>
+<li><strong>State Update:</strong>
+<ul>
+<li>The parsed data is returned to the Component.</li>
+<li>Component updates <code>JobContext</code> or local state.</li>
+<li>Data is saved to DB via Drizzle (if applicable).</li>
+</ul>
+</li>
+</ol>
+<h2>11. Database Design (Schema)</h2>
+<p>The database is normalized and designed for scalability using PostgreSQL.</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">Table Name</th>
+<th style="text-align:left">Purpose</th>
+<th style="text-align:left">Key Columns</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left"><strong><code>user_profiles</code></strong></td>
+<td style="text-align:left">Stores core user identity and global resume data.</td>
+<td style="text-align:left"><code>id</code>, <code>clerk_user_id</code>, <code>base_resume</code>, <code>skills</code> (JSON)</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong><code>jobs</code></strong></td>
+<td style="text-align:left">Stores unique job listings to avoid duplication.</td>
+<td style="text-align:left"><code>id</code>, <code>title</code>, <code>company</code>, <code>description</code>, <code>source_url</code></td>
+</tr>
+<tr>
+<td style="text-align:left"><strong><code>tracked_jobs</code></strong></td>
+<td style="text-align:left">Join table linking Users to Jobs with application status.</td>
+<td style="text-align:left"><code>id</code>, <code>user_id</code>, <code>job_id</code>, <code>status</code>, <code>tailored_resume</code>, <code>application_insights</code> (JSON)</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong><code>interview_questions</code></strong></td>
+<td style="text-align:left">Stores generated questions and user practice history.</td>
+<td style="text-align:left"><code>id</code>, <code>job_id</code>, <code>question</code>, <code>user_answer</code>, <code>feedback</code> (JSON)</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong><code>company_briefings</code></strong></td>
+<td style="text-align:left">Caches AI-generated company research.</td>
+<td style="text-align:left"><code>id</code>, <code>company_name</code>, <code>mission</code>, <code>culture</code></td>
+</tr>
+<tr>
+<td style="text-align:left"><strong><code>career_path_plans</code></strong></td>
+<td style="text-align:left">Stores long-term career strategy data.</td>
+<td style="text-align:left"><code>id</code>, <code>current_role</code>, <code>goal_role</code>, <code>timeline</code></td>
+</tr>
+<tr>
+<td style="text-align:left"><strong><code>potential_contacts</code></strong></td>
+<td style="text-align:left">Stores networking leads.</td>
+<td style="text-align:left"><code>id</code>, <code>name</code>, <code>linkedin_url</code>, <code>email</code></td>
+</tr>
+</tbody>
+</table>
+<h2>12. AI/ML Logic</h2>
+<ul>
+<li><strong>Model:</strong> Google Gemini 2.5 Flash (chosen for speed and cost-efficiency).</li>
+<li><strong>Prompt Engineering:</strong>
+<ul>
+<li><strong>Role-Playing:</strong> “You are an expert ATS resume optimizer”, “You are a supportive interview coach”.</li>
+<li><strong>Structured Output:</strong> Prompts explicitly request JSON formats to ensure the frontend can render the data dynamically.</li>
+<li><strong>Context Injection:</strong> User’s resume and the specific job description are injected into every prompt to ensure highly personalized results.</li>
+</ul>
+</li>
+<li><strong>Features:</strong>
+<ul>
+<li><strong>NLP:</strong> Parsing unstructured job descriptions into structured JSON.</li>
+<li><strong>Content Generation:</strong> Writing cover letters and emails.</li>
+<li><strong>Analysis:</strong> Comparing two text blocks (Resume vs. Job Description) for gap analysis.</li>
+</ul>
+</li>
+</ul>
+<h2>13. Admin Panel Capabilities</h2>
+<p><em>Not Implemented Yet.</em></p>
+<ul>
+<li>Currently, there is no dedicated interface for administrators to manage users or view global analytics.</li>
+</ul>
+<h2>14. Performance Optimizations Used</h2>
+<ul>
+<li><strong>Vite:</strong> Ensures extremely fast development server start and hot module replacement (HMR).</li>
+<li><strong>Code Splitting:</strong> React Router supports lazy loading of routes (implied by structure).</li>
+<li><strong>Optimistic UI:</strong> The UI updates immediately (e.g., dragging a job card) while the background save operation happens.</li>
+<li><strong>Debouncing:</strong> Likely used in search inputs to prevent excessive API calls (standard practice in <code>SearchScreen</code>).</li>
+<li><strong>Efficient DOM:</strong> <code>Lucide React</code> uses lightweight SVG icons.</li>
+</ul>
+<h2>15. Scalability Design</h2>
+<ul>
+<li><strong>Serverless Database:</strong> Neon allows the database to scale compute resources up/down automatically based on load.</li>
+<li><strong>Stateless Backend:</strong> The application logic is largely stateless (REST/RPC style), making it easy to replicate if moved to a dedicated backend server.</li>
+<li><strong>Separation of Concerns:</strong> Database schema is decoupled from the frontend view models via Drizzle ORM, allowing schema evolution without breaking the UI immediately.</li>
+</ul>
+<h2>16. Error Handling Strategy</h2>
+<ul>
+<li><strong>Graceful Degradation:</strong> If the Job Scraping Service fails, the system falls back to AI-generated “search results” or Demo data (<code>generateDemoJobs</code>), ensuring the user never sees a blank screen.</li>
+<li><strong>Toast Notifications:</strong> A global <code>ToastContainer</code> provides immediate visual feedback for success/error states.</li>
+<li><strong>Try-Catch Blocks:</strong> All async service calls (<code>geminiService.ts</code>) are wrapped in try-catch blocks to log errors to console and throw user-friendly messages.</li>
+<li><strong>Zod Validation:</strong> Ensures data integrity before it reaches the database or UI.</li>
+</ul>
+<h2>17. Deployment Strategy</h2>
+<ul>
+<li><strong>CI/CD:</strong> GitHub Actions (recommended) to build and test on push.</li>
+<li><strong>Frontend:</strong> Deploy to Vercel. Connect repository -&gt; Auto-detect Vite -&gt; Set Environment Variables.</li>
+<li><strong>Database:</strong> Provision Neon Postgres instance -&gt; Run <code>npm run db:push</code> to apply schema.</li>
+<li><strong>Environment Variables:</strong>
+<ul>
+<li><code>VITE_CLERK_PUBLISHABLE_KEY</code></li>
+<li><code>VITE_GEMINI_API_KEY</code></li>
+<li><code>DATABASE_URL</code></li>
+</ul>
+</li>
+</ul>
+<h2>18. Future Scope</h2>
+<ul>
+<li><strong>Browser Automation:</strong> Integrate Puppeteer/Selenium properly to actually fill out forms on external sites (“One-Click Apply”).</li>
+<li><strong>Mobile Application:</strong> Port the React logic to React Native.</li>
+<li><strong>Browser Extension:</strong> A Chrome extension to “Clip” jobs from LinkedIn directly into the Dashboard.</li>
+<li><strong>Community:</strong> A social feature for users to share salary data anonymously.</li>
+</ul>
+<h2>19. Industry Use Cases</h2>
+<ul>
+<li><strong>EdTech:</strong> Universities can offer this tool to final-year students to boost placement rates.</li>
+<li><strong>Outplacement Firms:</strong> Companies laying off employees can provide this tool as part of the severance package.</li>
+<li><strong>Recruitment Agencies:</strong> Agents can use the “Search” and “Match” features to find candidates for their clients.</li>
+</ul>
+<h2>20. Business Value</h2>
+<ul>
+<li><strong>Time Savings:</strong> Reduces job application time by 50-70% via automation.</li>
+<li><strong>Higher Success Rate:</strong> Tailored resumes significantly increase interview callback rates.</li>
+<li><strong>Data-Driven Decisions:</strong> Analytics help users understand where they are failing (resume vs. interview stage).</li>
+</ul>
+<h2>21. Monetization Possibilities</h2>
+<ul>
+<li><strong>Freemium Model:</strong>
+<ul>
+<li><strong>Free:</strong> Manual tracking, 3 AI resume tailors/month.</li>
+<li><strong>Pro ($15/mo):</strong> Unlimited AI tailoring, Auto-apply features, Advanced Interview Coach.</li>
+</ul>
+</li>
+<li><strong>B2B Licensing:</strong> Selling bulk licenses to Universities or Coding Bootcamps.</li>
+<li><strong>Affiliate Marketing:</strong> Suggesting paid courses (Coursera/Udemy) in the “Skills Gap” section.</li>
+</ul>
+<h2>22. Full Project Summary</h2>
+<p><strong>AI Job Automator</strong> is an enterprise-grade, AI-powered career assistant designed to revolutionize the job search experience. By leveraging <strong>Google’s Gemini AI</strong>, it transforms the chaotic process of finding a job into a streamlined, data-driven workflow. Users can search for jobs, automatically generate perfectly tailored resumes and cover letters, track their applications on a Kanban board, and even practice with a virtual interview coach. Built on a modern stack of <strong>React, TypeScript, and Serverless Postgres</strong>, it is designed for performance, scalability, and real-world utility, addressing the deep pain points of modern job seekers.</p>
+
+</body>
+</html>

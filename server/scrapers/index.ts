@@ -4,20 +4,6 @@ import { Job } from '../../types.js';
 // INTERNSHALA SCRAPER (India Internships)
 // ============================================
 
-interface InternshalaInternship {
-    id: string;
-    title: string;
-    company_name: string;
-    location_names: string[];
-    stipend: { salary: string };
-    start_date: string;
-    duration: string;
-    posted_on: string;
-    application_deadline: string;
-    labels_app_in_498: string[];
-    url: string;
-}
-
 export async function scrapeInternshala(keyword: string, location: string = ''): Promise<Job[]> {
     try {
         // Internshala has an internal API we can use
@@ -71,7 +57,6 @@ function parseInternshalaHTML(html: string, keyword: string): Job[] {
     // Extract internship cards using regex (basic parsing)
     // In production, use a proper HTML parser like cheerio
     const titleRegex = /<h3[^>]*class="[^"]*heading_4_5[^"]*"[^>]*>([^<]+)<\/h3>/g;
-    const companyRegex = /<p[^>]*class="[^"]*company_name[^"]*"[^>]*>([^<]+)<\/p>/g;
 
     let titleMatch;
     let index = 0;

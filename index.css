@@ -1,0 +1,492 @@
+/* ============================================================
+   AI Job Automator — Design System (index.css)
+   Professional Stripe-inspired theme — researched via getdesign.md
+   (stripe DESIGN.md: gradient-mesh hero on white canvas, indigo
+   primary #533afd, deep-navy ink #0d253d, thin display type with
+   negative tracking, pill buttons, tabular figures, hairlines)
+   ============================================================ */
+
+:root {
+  /* Stripe-inspired landing tokens */
+  --lp-canvas: #ffffff;
+  --lp-canvas-soft: #f6f9fc;
+  --lp-canvas-cream: #f5e9d4;
+  --lp-ink: #0d253d;
+  --lp-ink-secondary: #273951;
+  --lp-ink-mute: #64748d;
+  --lp-hairline: #e3e8ee;
+  --lp-hairline-input: #a8c3de;
+  --lp-primary: #533afd;
+  --lp-primary-deep: #4434d4;
+  --lp-primary-press: #2e2b8c;
+  --lp-primary-soft: #665efd;
+  --lp-primary-subdued: #b9b9f9;
+  --lp-brand-dark: #1c1e54;
+  --lp-ruby: #ea2261;
+  --lp-magenta: #f96bee;
+  --lp-lemon: #9b6829;
+  --lp-shadow-blue: rgba(0, 55, 112, 0.08);
+  --lp-on-primary: #ffffff;
+  --lp-success: #217a53;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: 'ss01' on;
+}
+
+/* ---------- Landing root: white canvas ---------- */
+
+.lp-root {
+  color: var(--lp-ink);
+  background: var(--lp-canvas);
+}
+
+.lp-container {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding-left: 24px;
+  padding-right: 24px;
+}/* ---------- Gradient mesh (the signature hero band) ---------- */
+
+.lp-mesh {
+  position: relative;
+  background: var(--lp-canvas);
+  overflow: hidden;
+}
+
+/* Static CSS mesh — also the graceful fallback when WebGL is unavailable */
+.lp-mesh::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(58% 78% at 8% 18%, rgba(245, 233, 212, 0.9), transparent 62%),
+    radial-gradient(42% 68% at 26% 8%, rgba(242, 107, 58, 0.22), transparent 60%),
+    radial-gradient(46% 72% at 52% 4%, rgba(185, 185, 249, 0.55), transparent 64%),
+    radial-gradient(48% 80% at 74% 14%, rgba(83, 58, 253, 0.30), transparent 62%),
+    radial-gradient(44% 70% at 96% 24%, rgba(234, 34, 97, 0.26), transparent 60%),
+    radial-gradient(38% 56% at 88% 2%, rgba(249, 107, 238, 0.30), transparent 58%);
+  pointer-events: none;
+}
+
+/* Live WebGL canvas — covers the static mesh when active */
+.lp-gradient-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  transition: opacity 1.2s ease;
+  pointer-events: none;
+}
+
+.lp-gradient-canvas.isLoaded {
+  opacity: 1;
+}
+
+.lp-mesh > * {
+  position: relative;
+}
+
+/* ---------- 3D mouse-tilt (wow layer) ---------- */
+
+.lp-tilt-scene {
+  perspective: 1400px;
+}
+
+.lp-tilt-card {
+  transform-style: preserve-3d;
+  transition: transform 0.18s ease-out, box-shadow 0.18s ease-out;
+  will-change: transform;
+}
+
+/* Light glare that follows the cursor across the card */
+.lp-tilt-glare {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(420px circle at var(--glare-x, 50%) var(--glare-y, 50%), rgba(255, 255, 255, 0.35), transparent 65%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.lp-tilt-card:hover .lp-tilt-glare {
+  opacity: 1;
+}
+
+/* Depth children — pop toward the viewer with the tilt */
+.lp-tilt-depth {
+  transform: translateZ(46px);
+}
+
+/* ---------- Counter-up stats ---------- */
+
+.lp-stat-value {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' on;
+}
+
+/* ---------- Buttons: pill geometry ---------- */
+
+.lp-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 1;
+  padding: 10px 18px;
+  border-radius: 9999px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.15s ease;
+  white-space: nowrap;
+}
+
+.lp-btn:active {
+  transform: translateY(1px);
+}
+
+.lp-btn-primary {
+  background: var(--lp-primary);
+  color: var(--lp-on-primary);
+}
+
+.lp-btn-primary:hover {
+  background: var(--lp-primary-deep);
+}
+
+.lp-btn-primary:active {
+  background: var(--lp-primary-press);
+}
+
+.lp-btn-secondary {
+  background: var(--lp-canvas);
+  color: var(--lp-primary);
+  border-color: var(--lp-primary);
+}
+
+.lp-btn-secondary:hover {
+  background: #f6f6ff;
+}
+
+.lp-btn-ghost {
+  background: transparent;
+  color: var(--lp-ink);
+}
+
+.lp-btn-ghost:hover {
+  background: rgba(13, 37, 61, 0.05);
+}
+
+.lp-btn-dark {
+  background: var(--lp-brand-dark);
+  color: var(--lp-on-primary);
+}
+
+.lp-btn-dark:hover {
+  background: #262a6e;
+}
+
+/* ---------- Display type: Sohne-thin approximation via Inter 300 ---------- */
+
+.lp-display-xl {
+  font-size: clamp(2.5rem, 5.6vw, 3.75rem);
+  font-weight: 300;
+  line-height: 1.06;
+  letter-spacing: -0.025em;
+}
+
+.lp-display-lg {
+  font-size: clamp(2rem, 4.2vw, 3rem);
+  font-weight: 300;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+
+.lp-display-md {
+  font-size: clamp(1.5rem, 2.8vw, 2rem);
+  font-weight: 300;
+  line-height: 1.12;
+  letter-spacing: -0.012em;
+}
+
+.lp-heading-md {
+  font-size: 1.25rem;
+  font-weight: 400;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+}
+
+.lp-eyebrow {
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.2;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--lp-ink-mute);
+}
+
+.lp-lead {
+  font-size: 1.125rem;
+  font-weight: 300;
+  line-height: 1.5;
+  color: var(--lp-ink-secondary);
+}
+
+/* Tabular figures — the quiet financial-data signal */
+.lp-tabular {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' on;
+  letter-spacing: -0.02em;
+}
+
+/* ---------- Cards ---------- */
+
+.lp-card {
+  background: var(--lp-canvas);
+  border: 1px solid var(--lp-hairline);
+  border-radius: 12px;
+  box-shadow: var(--lp-shadow-blue) 0 1px 3px;
+}
+
+.lp-card-hover {
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.lp-card-hover:hover {
+  transform: translateY(-3px);
+  box-shadow:
+    var(--lp-shadow-blue) 0 8px 24px,
+    rgba(0, 55, 112, 0.04) 0 2px 6px;
+  border-color: var(--lp-hairline-input);
+}
+
+/* Cream interlude band */
+.lp-band-cream {
+  background: var(--lp-canvas-cream);
+  border-radius: 12px;
+}
+
+.lp-band-soft {
+  background: var(--lp-canvas-soft);
+}
+
+/* Featured / inverted card */
+.lp-card-featured {
+  background: var(--lp-brand-dark);
+  color: var(--lp-on-primary);
+  border-radius: 12px;
+  box-shadow: rgba(28, 30, 84, 0.35) 0 16px 40px -12px;
+}
+
+/* ---------- Pill tag ---------- */
+
+.lp-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 12px;
+  border-radius: 9999px;
+  background: var(--lp-primary-subdued);
+  color: var(--lp-primary-press);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.lp-pill-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 9999px;
+  background: #1ea672;
+}
+
+/* ---------- Sticky nav ---------- */
+
+.lp-nav {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.25s ease, background 0.25s ease;
+}
+
+.lp-nav.scrolled {
+  border-bottom-color: var(--lp-hairline);
+  background: rgba(255, 255, 255, 0.95);
+}
+
+.lp-link {
+  color: var(--lp-ink-secondary);
+  transition: color 0.15s ease;
+}
+
+.lp-link:hover {
+  color: var(--lp-primary);
+}
+
+/* ---------- Hero product mockup (faux dashboard panel) ---------- */
+
+.lp-mockup {
+  border-radius: 16px;
+  border: 1px solid var(--lp-hairline);
+  background: var(--lp-canvas);
+  box-shadow:
+    rgba(0, 55, 112, 0.08) 0 8px 24px,
+    rgba(0, 55, 112, 0.04) 0 2px 6px;
+  overflow: hidden;
+}
+
+.lp-mockup-dark {
+  border-radius: 16px;
+  background: var(--lp-brand-dark);
+  color: var(--lp-on-primary);
+  overflow: hidden;
+}
+
+.lp-float-chip {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: 9999px;
+  background: var(--lp-canvas);
+  border: 1px solid var(--lp-hairline);
+  box-shadow: rgba(0, 55, 112, 0.14) 0 8px 24px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--lp-ink);
+  white-space: nowrap;
+  animation: lp-float-soft 8s ease-in-out infinite;
+}
+
+@keyframes lp-float-soft {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  50% { transform: translate3d(0, -10px, 0); }
+}
+
+/* ---------- Marquee ---------- */
+
+@keyframes lp-marquee {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.lp-marquee-track {
+  display: flex;
+  gap: 64px;
+  width: max-content;
+  animation: lp-marquee 36s linear infinite;
+}
+
+.lp-marquee:hover .lp-marquee-track {
+  animation-play-state: paused;
+}
+
+/* ---------- Reveal on scroll ---------- */
+
+.lp-reveal {
+  opacity: 0;
+  transform: translateY(18px);
+  transition: opacity 0.55s ease, transform 0.55s ease;
+}
+
+.lp-reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ---------- Small screen adjustments ---------- */
+
+@media (max-width: 768px) {
+  .lp-float-chip {
+    display: none;
+  }
+
+  .lp-tilt-card {
+    transform: none !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lp-float-chip,
+  .lp-marquee-track,
+  .lp-reveal {
+    animation: none !important;
+    transition: none !important;
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ---------- Global UI Micro-Animations & Glassmorphism Utilities ---------- */
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+}
+
+.hover-float {
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.25s ease;
+}
+
+.hover-float:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 24px -6px rgba(99, 102, 241, 0.2);
+}
+
+.active-press {
+  transition: transform 0.1s ease;
+}
+
+.active-press:active {
+  transform: scale(0.97);
+}
+
+@keyframes pulseGlow {
+  0%, 100% {
+    box-shadow: 0 0 15px rgba(99, 102, 241, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 30px rgba(99, 102, 241, 0.7);
+  }
+}
+
+.glow-pulse {
+  animation: pulseGlow 2.5s infinite ease-in-out;
+}
+
+@keyframes shimmerWave {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.shimmer-skeleton {
+  background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+  background-size: 200% 100%;
+  animation: shimmerWave 1.8s infinite linear;
+}

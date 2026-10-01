@@ -24,12 +24,14 @@ export interface Job {
   title: string;
   company: string;
   location: string;
-  description:string;
+  description: string;
   tags: string[];
   salary: string;
   postedDate: string;
   sourceUrl?: string;
   isWishlisted?: boolean;
+  source?: string;
+  relevanceScore?: number;
 }
 
 export enum ApplicationStatus {
@@ -140,6 +142,10 @@ export interface NegotiationAnalysis {
 export interface PotentialContact {
     name: string;
     title: string;
+    department?: string;
+    connection_reason?: string;
+    linkedin_search_term?: string;
+    message_suggestion?: string;
     linkedinUrl?: string;
     email?: string;
 }

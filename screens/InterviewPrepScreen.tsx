@@ -6,7 +6,7 @@ import { generateInterviewQuestions, getInterviewFeedback } from '../services/ge
 import ScreenWrapper from '../components/ScreenWrapper';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { Job, CategorizedQuestions, InterviewFeedback, InterviewQuestion } from '../types';
-import { LightbulbIcon, MicrophoneIcon, VideoCameraIcon } from '../components/icons';
+import { MicrophoneIcon, VideoCameraIcon } from '../components/icons';
 
 const InterviewPrepScreen: React.FC = () => {
   const { id } = useParams<{ id: string }>();

@@ -6,7 +6,7 @@ import { generateInterviewQuestions, getInterviewVideoFeedback } from '../servic
 import ScreenWrapper from '../components/ScreenWrapper';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { Job, CategorizedQuestions, InterviewFeedback, InterviewQuestion } from '../types';
-import { MicrophoneIcon, SpeakerWaveIcon, SparklesIcon, VideoCameraIcon, CheckIcon } from '../components/icons';
+import { MicrophoneIcon, SpeakerWaveIcon, SparklesIcon, VideoCameraIcon } from '../components/icons';
 
 type InterviewState = 'IDLE' | 'GENERATING_QUESTIONS' | 'READY' | 'ASKING' | 'LISTENING' | 'PROCESSING_ANSWER' | 'SHOWING_FEEDBACK' | 'FINISHED';
 

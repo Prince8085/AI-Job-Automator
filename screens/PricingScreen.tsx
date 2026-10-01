@@ -1,14 +1,11 @@
 
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import ScreenWrapper from '../components/ScreenWrapper';
-import { useCredits, CREDIT_PLANS, CREDIT_COSTS, CreditDisplay } from '../contexts/CreditContext';
+import { useCredits, CREDIT_PLANS, CREDIT_COSTS } from '../contexts/CreditContext';
 import { processPayment, processDemoPayment, createOrder } from '../services/paymentService';
 import { useJobData } from '../contexts/JobDataContext';
-import { CheckIcon } from '../components/icons';
 
 const PricingScreen: React.FC = () => {
-    const navigate = useNavigate();
     const { addCredits, credits, transactionHistory } = useCredits();
     const { userProfile, showToast } = useJobData();
     const [loading, setLoading] = useState<string | null>(null);
@@ -52,6 +49,7 @@ const PricingScreen: React.FC = () => {
                     {
                         name: userProfile.name || 'User',
                         email: userProfile.email || 'user@example.com',
+                        userId: userProfile.clerkUserId || userProfile.id || 'local-user',
                     },
                     (creditAmount) => {
                         addCredits(creditAmount);

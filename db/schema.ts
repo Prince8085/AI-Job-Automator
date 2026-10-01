@@ -27,6 +27,12 @@ export const userProfiles = pgTable('user_profiles', {
   location: varchar('location', { length: 255 }),
   experience: json('experience').$type<any[]>(),
   skills: json('skills').$type<string[]>(),
+  // Portable JSON blob for cross-device sync of tracked jobs, wishlist,
+  // and any client-side state (avoids the string-id ↔ UUID mapping problem).
+  syncData: json('sync_data').$type<{
+    trackedJobs?: unknown[];
+    wishlistedJobs?: unknown[];
+  }>(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });

@@ -41,7 +41,7 @@ const NegotiationCoachScreen: React.FC = () => {
         setIsLoading(true);
         setAnalysis(null);
         try {
-            const result = await analyzeOfferAndGenerateScript(job, offerDetails, userProfile.baseResume);
+            const result = await analyzeOfferAndGenerateScript(job, offerDetails, userProfile.baseResume || '');
             setAnalysis(result);
             showToast('Negotiation analysis complete!', 'success');
         } catch (err: any) {

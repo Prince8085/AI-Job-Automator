@@ -10,6 +10,7 @@ import {
   DEMO_USER_PROFILE
 } from '../constants';
 import { searchLiveJobs } from '../services/geminiService';
+import { fetchUserSync, pushUserSync } from '../services/userSyncService';
 
 interface JobContextType {
   // User Profile
@@ -69,6 +70,10 @@ export const JobProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
+  // Server-sync plumbing
+  const hydratedRef = React.useRef(false);
+  const pushTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+
   // State for live search results
   const [liveSearchResults, setLiveSearchResults] = useState<Job[]>([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -117,6 +122,27 @@ export const JobProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         setUserProfile(updatedProfile);
         console.log('User profile synced with Clerk');
 
+        // Pull server-side data (cross-device persistence)
+        const serverData = await fetchUserSync(userId);
+        if (serverData?.profile) {
+          const serverProfile = serverData.profile as Partial<UserProfile>;
+          setUserProfile(prev => ({
+            ...prev,
+            ...serverProfile,
+            clerkUserId: userId,
+            name: serverProfile.name || prev.name,
+            email: serverProfile.email || prev.email,
+            updatedAt: new Date()
+          }));
+        }
+        if (Array.isArray(serverData?.trackedJobs) && serverData.trackedJobs.length > 0) {
+          setTrackedJobs(serverData.trackedJobs as TrackedJob[]);
+        }
+        if (Array.isArray(serverData?.wishlistedJobs) && serverData.wishlistedJobs.length > 0) {
+          setWishlistedJobs(serverData.wishlistedJobs as Job[]);
+        }
+        hydratedRef.current = true;
+
       } catch (error) {
         console.error('Error loading user data:', error);
         showToast('Failed to sync with account', 'error');
@@ -127,6 +153,38 @@ export const JobProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
     loadUserData();
   }, [isSignedIn, userId, user]);
+
+  // Push state changes to the backend (debounced) once signed in + hydrated
+  useEffect(() => {
+    if (!isSignedIn || !userId || !hydratedRef.current) return;
+
+    if (pushTimerRef.current) clearTimeout(pushTimerRef.current);
+    pushTimerRef.current = setTimeout(() => {
+      pushUserSync(userId, {
+        profile: {
+          name: userProfile.name,
+          email: userProfile.email,
+          phone: userProfile.phone,
+          bio: userProfile.bio,
+          baseResume: userProfile.baseResume,
+          profilePictureUrl: userProfile.profilePictureUrl,
+          coverPhotoUrl: userProfile.coverPhotoUrl,
+          linkedinUrl: userProfile.linkedinUrl,
+          githubUrl: userProfile.githubUrl,
+          portfolioUrl: userProfile.portfolioUrl,
+          location: userProfile.location,
+          skills: userProfile.skills,
+          experience: userProfile.experience,
+        },
+        trackedJobs,
+        wishlistedJobs,
+      });
+    }, 1500);
+
+    return () => {
+      if (pushTimerRef.current) clearTimeout(pushTimerRef.current);
+    };
+  }, [isSignedIn, userId, userProfile, trackedJobs, wishlistedJobs]);
 
   const resetAllData = useCallback(() => {
     setUserProfile(getInitialUserProfile());
@@ -189,11 +247,22 @@ export const JobProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   }, []);
 
   const updateJobStatus = useCallback((jobId: string, status: ApplicationStatus) => {
-    setTrackedJobs(prev =>
-      prev.map(job =>
-        job.id === jobId ? { ...job, status } : job
-      )
-    );
+    try {
+      setTrackedJobs(prev => {
+        const updated = prev.map(job => 
+          job.id === jobId ? { ...job, status, updatedAt: new Date() } : job
+        );
+        // Verify the update was successful
+        const updatedJob = updated.find(j => j.id === jobId);
+        if (!updatedJob || updatedJob.status !== status) {
+          throw new Error('Failed to verify status update');
+        }
+        return updated;
+      });
+    } catch (error) {
+      console.error('Error updating job status:', error);
+      throw error;
+    }
   }, []);
 
   const saveTrackedJobData = useCallback((jobId: string, data: Partial<Omit<TrackedJob, 'id'>>) => {

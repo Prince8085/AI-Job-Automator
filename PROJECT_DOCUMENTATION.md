@@ -65,7 +65,7 @@ Job seekers currently have to juggle multiple platforms (LinkedIn, Indeed, Glass
 6.  **Data Persistence:** All user actions (saving jobs, updating status, saving notes) are synced to the database.
 
 ## 7. Core Features
--   **Smart Job Search:** Aggregates jobs from multiple sources (Simulated integration with Indeed, LinkedIn, Glassdoor).
+-   **Smart Job Search:** Aggregates jobs from multiple sources (Simulated integration with Indeed, LinkedIn, Glassdoor) and includes a dedicated **LinkedIn Scraper** to find hiring posts.
 -   **Kanban Board Tracker:** Drag-and-drop interface to manage applications (Saved, Applied, Interviewing, Offer, Rejected).
 -   **AI Resume Builder:** Automatically generates ATS-optimized resumes tailored to specific job descriptions.
 -   **Cover Letter Generator:** Creates personalized cover letters based on user bio and job requirements.
@@ -77,6 +77,10 @@ Job seekers currently have to juggle multiple platforms (LinkedIn, Indeed, Glass
 -   **Salary Negotiation Coach:** Analyzes offers against market data and generates counter-offer scripts.
 -   **Networking Assistant:** Finds potential contacts at target companies and drafts outreach messages.
 -   **Career Planner:** Maps out long-term career paths and bridge roles.
+-   **Auto Apply Agent:** Automates the application process using AI.
+-   **Internship Calendar:** Tracks important dates for internship opportunities.
+-   **Salary Calculator:** Estimates market value based on role and experience.
+-   **Job Alerts:** Notifies users of new matching opportunities.
 
 ## 8. User Roles & Permissions
 -   **Standard User:**
@@ -174,7 +178,7 @@ The database is normalized and designed for scalability using PostgreSQL.
     -   `DATABASE_URL`
 
 ## 18. Future Scope
--   **Browser Automation:** Integrate Puppeteer/Selenium properly to actually fill out forms on external sites ("One-Click Apply").
+-   **Browser Automation:** Integrate Puppeteer/Selenium properly to actually fill out forms on external sites (partially implemented in Auto Apply Agent).
 -   **Mobile Application:** Port the React logic to React Native.
 -   **Browser Extension:** A Chrome extension to "Clip" jobs from LinkedIn directly into the Dashboard.
 -   **Community:** A social feature for users to share salary data anonymously.

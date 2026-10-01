@@ -4,12 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useJobData } from '../contexts/JobDataContext';
 import ScreenWrapper from '../components/ScreenWrapper';
 import { TrackedJob, ApplicationStatus } from '../types';
-import {
-    ChevronLeftIcon,
-    BriefcaseIcon,
-    CheckIcon,
-    SparklesIcon
-} from '../components/icons';
+import { ChevronLeftIcon } from '../components/icons';
 
 const STATUS_COLORS: Record<ApplicationStatus, string> = {
     [ApplicationStatus.SAVED]: 'bg-slate-400',
@@ -35,7 +30,7 @@ interface CalendarEvent {
 
 const InternshipCalendarScreen: React.FC = () => {
     const navigate = useNavigate();
-    const { trackedJobs, showToast } = useJobData();
+    const { trackedJobs } = useJobData();
     const [currentDate, setCurrentDate] = useState(new Date());
     const [selectedDate, setSelectedDate] = useState<Date | null>(null);
 
@@ -234,7 +229,6 @@ const InternshipCalendarScreen: React.FC = () => {
                             }
 
                             const dayEvents = getEventsForDate(date);
-                            const hasEvents = dayEvents.length > 0;
 
                             return (
                                 <button

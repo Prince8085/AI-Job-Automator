@@ -3,7 +3,6 @@ import React, { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { StructuredResume } from '../types';
 import LoadingSpinner from '../components/LoadingSpinner';
-import { jsPDF } from 'jspdf'; // Using jsPDF for text measurement consistency
 
 const ResumeFeedbackScreen: React.FC = () => {
   const [resume, setResume] = useState<StructuredResume | null>(null);
@@ -29,10 +28,6 @@ const ResumeFeedbackScreen: React.FC = () => {
   }, [location.search]);
   
   const renderResume = (r: StructuredResume) => {
-    const doc = new jsPDF(); // For text measurement
-    const pageWidth = 595; // A4 width in points
-    const margin = 40;
-
     const Section: React.FC<{title: string, children: React.ReactNode}> = ({ title, children }) => (
         <div
             className={`p-4 border-l-4 transition-all duration-300 ${activeSection === title ? 'border-primary bg-indigo-50' : 'border-transparent'}`}

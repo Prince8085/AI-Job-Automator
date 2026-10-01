@@ -58,7 +58,14 @@ const TrackerModal: React.FC<TrackerModalProps> = ({ job, onClose }) => {
     const jobData = (getJobById(job.id) as TrackedJob) || job;
 
     const handleStatusChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        updateJobStatus(jobData.id, e.target.value as ApplicationStatus);
+        const newStatus = e.target.value as ApplicationStatus;
+        try {
+            updateJobStatus(jobData.id, newStatus);
+            showToast(`Status updated to ${newStatus}`, 'success');
+        } catch (error: any) {
+            console.error('Error updating status:', error);
+            showToast('Failed to update status. Please try again.', 'error');
+        }
     };
 
     const handleSaveNotes = () => {
@@ -69,7 +76,7 @@ const TrackerModal: React.FC<TrackerModalProps> = ({ job, onClose }) => {
     const handleGenerateInsights = async () => {
         setIsLoadingInsights(true);
         try {
-            const result = await getApplicationInsights(jobData, userProfile.baseResume);
+            const result = await getApplicationInsights(jobData, userProfile.baseResume || '');
             saveTrackedJobData(jobData.id, { applicationInsights: result });
             showToast("Insights generated!", "success");
         } catch (err: any) {

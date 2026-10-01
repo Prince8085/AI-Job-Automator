@@ -5,7 +5,7 @@ import { generateCareerPathPlan } from '../services/geminiService';
 import ScreenWrapper from '../components/ScreenWrapper';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { CareerPathPlan } from '../types';
-import { SparklesIcon, BriefcaseIcon, LightbulbIcon, RouteIcon, TrophyIcon } from '../components/icons';
+import { SparklesIcon, BriefcaseIcon, LightbulbIcon, RouteIcon } from '../components/icons';
 
 const CareerPlannerScreen: React.FC = () => {
   const { showToast } = useJobData();

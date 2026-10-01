@@ -30,7 +30,7 @@ const SkillsGapScreen: React.FC = () => {
     setIsLoading(true);
     setAnalysis(null);
     try {
-      const result = await getSkillsGapAnalysis(userProfile.baseResume, job.description);
+      const result = await getSkillsGapAnalysis(userProfile.baseResume || '', job.description);
       setAnalysis(result);
       showToast('Analysis complete!', 'success');
     } catch (err: any) {

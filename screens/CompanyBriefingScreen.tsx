@@ -6,7 +6,6 @@ import { generateCompanyBriefing } from '../services/geminiService';
 import ScreenWrapper from '../components/ScreenWrapper';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { Job, CompanyBriefing } from '../types';
-import { BuildingIcon, LightbulbIcon } from '../components/icons';
 
 const CompanyBriefingScreen: React.FC = () => {
   const { id } = useParams<{ id: string }>();

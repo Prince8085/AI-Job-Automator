@@ -1,5 +1,5 @@
 
-import { Job, UserProfile, TrackedJob, ApplicationStatus, PotentialContact } from './types';
+import { UserProfile, ApplicationStatus } from './types';
 
 // Default empty user profile template - will be populated from Clerk auth or user input
 export const DEFAULT_USER_PROFILE: UserProfile = {
@@ -87,6 +87,14 @@ export const APPLICATION_STATUS_COLORS: Record<ApplicationStatus, { bg: string; 
 export const getInitialUserProfile = (): UserProfile => {
   const demoMode = (import.meta.env.VITE_DEMO_MODE ?? 'true') === 'true';
   return demoMode ? { ...DEMO_USER_PROFILE } : { ...DEFAULT_USER_PROFILE };
+};
+
+// Feature flags (default safe in demo/mvp)
+export const FEATURE_FLAGS = {
+  AUTO_APPLY_AGENT: (import.meta.env.VITE_FEATURE_AUTO_APPLY_AGENT ?? 'false') === 'true',
+  LINKEDIN_SCRAPER: (import.meta.env.VITE_FEATURE_LINKEDIN_SCRAPER ?? 'false') === 'true',
+  JOB_ALERTS: (import.meta.env.VITE_FEATURE_JOB_ALERTS ?? 'false') === 'true',
+  AUTOFILL_RESUME: (import.meta.env.VITE_FEATURE_AUTOFILL_RESUME ?? 'false') === 'true',
 };
 
 // LocalStorage keys for data persistence

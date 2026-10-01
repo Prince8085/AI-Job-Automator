@@ -43,22 +43,39 @@ export const loadRazorpayScript = (): Promise<boolean> => {
     });
 };
 
-// Create order (in production, this should call your backend)
+const API_BASE = import.meta.env.VITE_API_URL || '/api';
+
+// Create order via backend (falls back to a mock order when the
+// backend / Razorpay keys are unavailable so demo mode keeps working)
 export const createOrder = async (planId: string): Promise<PaymentOrder | null> => {
     const plan = CREDIT_PLANS.find(p => p.id === planId);
     if (!plan || plan.price === 0) return null;
 
-    // In production, call your backend to create a Razorpay order
-    // For demo, we create a mock order
-    const order: PaymentOrder = {
+    try {
+        const res = await fetch(`${API_BASE}/payments/create-order`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ planId }),
+        });
+        if (res.ok) {
+            const data = await res.json();
+            if (data?.success && data?.data?.orderId) {
+                return data.data as PaymentOrder;
+            }
+        }
+        console.warn('Backend order creation failed, using mock order');
+    } catch (error) {
+        console.warn('Backend unreachable, using mock order:', error);
+    }
+
+    // Mock order fallback
+    return {
         orderId: `order_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         amount: plan.price * 100, // Razorpay uses paise
         currency: 'INR',
         planId: plan.id,
         credits: plan.credits,
     };
-
-    return order;
 };
 
 // Process payment with Razorpay
@@ -68,6 +85,7 @@ export const processPayment = async (
         name: string;
         email: string;
         phone?: string;
+        userId?: string;
     },
     onSuccess: (credits: number) => void,
     onFailure: (error: string) => void
@@ -86,11 +104,27 @@ export const processPayment = async (
         name: 'AI Job Automator',
         description: `${order.credits} Credits`,
         order_id: order.orderId, // In production, use actual Razorpay order ID
-        handler: function (response: any) {
-            // Payment successful
+        handler: async function (response: any) {
+            // Payment successful — verify on backend (best effort, records
+            // the transaction server-side; credits are granted locally either way)
             console.log('Payment successful:', response);
 
-            // In production, verify payment on backend before adding credits
+            try {
+                await fetch(`${API_BASE}/payments/verify`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        orderId: order.orderId,
+                        paymentId: response.razorpay_payment_id,
+                        signature: response.razorpay_signature,
+                        userId: userDetails.userId || 'local-user',
+                        credits: order.credits,
+                    }),
+                });
+            } catch (error) {
+                console.warn('Payment verification call failed:', error);
+            }
+
             onSuccess(order.credits);
         },
         prefill: {

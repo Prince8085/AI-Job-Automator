@@ -16,7 +16,9 @@ const AnalyticsScreen: React.FC = () => {
     return acc;
   }, {} as Record<ApplicationStatus, number>);
 
-  const pieData = Object.entries(statusCounts).map(([name, value]) => ({ name, value }));
+  const pieData = Object.entries(statusCounts)
+    .filter(([, value]) => value > 0)
+    .map(([name, value]) => ({ name, value }));
 
   const COLORS = {
     [ApplicationStatus.SAVED]: '#a8a29e', // stone
@@ -52,13 +54,13 @@ const AnalyticsScreen: React.FC = () => {
     <ScreenWrapper>
       <div className="bg-white p-6 rounded-lg shadow-lg">
         <h3 className="text-xl font-bold text-text-primary mb-4">Application Status Overview</h3>
-        {trackedJobs.length > 0 ? (
+        {trackedJobs.length > 0 && pieData.length > 0 ? (
            <div style={{ width: '100%', height: 300 }}>
              <ResponsiveContainer>
               <PieChart>
                 <Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} fill="#8884d8" label>
                   {pieData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[entry.name as ApplicationStatus]} />
+                    <Cell key={`cell-${index}`} fill={COLORS[entry.name as ApplicationStatus] || '#666'} />
                   ))}
                 </Pie>
                 <Tooltip />
@@ -73,7 +75,7 @@ const AnalyticsScreen: React.FC = () => {
 
        <div className="bg-white p-6 rounded-lg shadow-lg mt-6">
         <h3 className="text-xl font-bold text-text-primary mb-4">Applications by Stage</h3>
-         {trackedJobs.length > 0 ? (
+         {trackedJobs.length > 0 && barData.some(d => d.count > 0) ? (
              <div style={{ width: '100%', height: 300 }}>
                 <ResponsiveContainer>
                   <BarChart data={barData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
@@ -83,14 +85,14 @@ const AnalyticsScreen: React.FC = () => {
                     <Tooltip />
                     <Bar dataKey="count">
                        {barData.map((entry, index) => (
-                         <Cell key={`cell-${index}`} fill={COLORS[entry.name as ApplicationStatus]} />
+                         <Cell key={`cell-${index}`} fill={COLORS[entry.name as ApplicationStatus] || '#666'} />
                        ))}
                     </Bar>
                   </BarChart>
                 </ResponsiveContainer>
              </div>
           ) : (
-           <p className="text-text-secondary text-center py-4">Track jobs to see bar chart data.</p>
+           <p className="text-text-secondary text-center py-4">{trackedJobs.length === 0 ? 'Track jobs to see bar chart data.' : 'Start tracking jobs to visualize your progress.'}</p>
         )}
       </div>
     </ScreenWrapper>

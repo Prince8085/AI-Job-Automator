@@ -7,23 +7,12 @@ import { parseResumeForProfile } from '../services/geminiService';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { DocumentArrowUpIcon, CameraIcon } from '../components/icons';
 import { useNavigate } from 'react-router-dom';
-
-const fileToGenerativePart = async (file: File) => {
-  const base64EncodedDataPromise = new Promise<string>((resolve) => {
-    const reader = new FileReader();
-    reader.onloadend = () => resolve((reader.result as string).split(',')[1]);
-    reader.readAsDataURL(file);
-  });
-  return {
-    inlineData: {
-      mimeType: file.type,
-      data: await base64EncodedDataPromise,
-    },
-  };
-};
+import { useClerk } from '@clerk/clerk-react';
+import { clearStorage } from '../constants';
 
 const ProfileScreen: React.FC = () => {
-  const { userProfile, updateUserProfile, showToast, logout } = useJobData();
+  const { userProfile, updateUserProfile, showToast } = useJobData();
+  const { signOut } = useClerk();
   const [profile, setProfile] = useState<UserProfile>(userProfile);
   const [isEditing, setIsEditing] = useState(false);
   const [isParsing, setIsParsing] = useState(false);
@@ -56,8 +45,8 @@ const ProfileScreen: React.FC = () => {
       const file = e.target.files[0];
       setIsParsing(true);
       try {
-        const filePart = await fileToGenerativePart(file);
-        const parsedData = await parseResumeForProfile(filePart);
+        const resumeText = await file.text();
+        const parsedData = await parseResumeForProfile(resumeText);
         setProfile(prev => ({
             ...prev,
             name: parsedData.name || prev.name,
@@ -88,7 +77,8 @@ const ProfileScreen: React.FC = () => {
   };
 
   const handleLogout = () => {
-    logout();
+    clearStorage();
+    signOut().catch(() => {});
     navigate('/');
   };
 

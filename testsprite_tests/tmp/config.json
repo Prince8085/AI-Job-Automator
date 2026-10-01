@@ -1,0 +1,98 @@
+{
+  "apiKey": "sk-user-RMwYHNsHcV8E5JT3ngRmQSvfPejWUH7Xf3xzO1-shM9kII7ByiGckt029_mYqoKzp34mhbJWCFqeroGJ5c30PBo0h3rASVVCQnP6p5ORPTKupr50GMAKuO5hBwS4h8eN8IY",
+  "projectRoot": "c:\\Users\\user\\Downloads\\ai job automator\\AI-Job-Automator",
+  "testSuites": [
+    {
+      "name": "Frontend Components Test Suite",
+      "modules": [
+        "Header",
+        "BottomNav", 
+        "JobCard",
+        "StatCard",
+        "Toast",
+        "TrackerModal",
+        "LoadingSpinner"
+      ],
+      "testTypes": ["unit", "integration"],
+      "entryPoint": "./components/"
+    },
+    {
+      "name": "Screen Components Test Suite", 
+      "modules": [
+        "DashboardScreen",
+        "SearchScreen",
+        "JobDetailsScreen", 
+        "ResumeBuilderScreen",
+        "CoverLetterScreen",
+        "InterviewPrepScreen",
+        "AnalyticsScreen",
+        "ProfileScreen",
+        "AutoApplyAgentScreen",
+        "EasyApplyScreen",
+        "TrackerScreen",
+        "WishlistScreen"
+      ],
+      "testTypes": ["functional", "ui"],
+      "entryPoint": "./screens/"
+    },
+    {
+      "name": "Database Services Test Suite",
+      "modules": [
+        "userService",
+        "jobService", 
+        "interviewService"
+      ],
+      "testTypes": ["integration", "performance"],
+      "entryPoint": "./db/services/"
+    },
+    {
+      "name": "Core Services Test Suite",
+      "modules": [
+        "geminiService",
+        "jobScrapingService",
+        "paymentService",
+        "proxyService",
+        "urlParsingService"
+      ],
+      "testTypes": ["unit", "integration", "performance"],
+      "entryPoint": "./services/"
+    },
+    {
+      "name": "Browser Extension Test Suite",
+      "modules": [
+        "contentScript",
+        "backgroundScript",
+        "popup"
+      ],
+      "testTypes": ["functional", "compatibility"],
+      "entryPoint": "./extension/"
+    },
+    {
+      "name": "Context Providers Test Suite",
+      "modules": [
+        "CreditContext",
+        "JobDataContext"
+      ],
+      "testTypes": ["integration", "state-management"],
+      "entryPoint": "./contexts/"
+    }
+  ],
+  "environments": {
+    "local": {
+      "baseUrl": "http://localhost:5173",
+      "timeout": 30000,
+      "headless": true
+    }
+  },
+  "reporting": {
+    "format": "junit",
+    "outputDir": "./test-reports",
+    "verbose": true
+  },
+  "execution": {
+    "parallel": true,
+    "maxConcurrency": 4,
+    "retryCount": 2,
+    "bail": false
+  }
+}

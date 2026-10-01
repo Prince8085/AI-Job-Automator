@@ -33,16 +33,28 @@ const EasyApplyScreen: React.FC = () => {
     }, [id, location.state, getJobById]);
 
     const handleGenerateCoverLetter = async () => {
-        if (!job) return;
+        if (!job) {
+            setError('Job data is required to generate a cover letter');
+            return;
+        }
 
         setIsGeneratingCoverLetter(true);
+        setError('');
         try {
+            if (!userProfile || !userProfile.baseResume) {
+                throw new Error('Resume data is missing. Please update your profile.');
+            }
             const letter = await generateCoverLetter(userProfile, job);
+            if (!letter || letter.trim().length === 0) {
+                throw new Error('Generated cover letter is empty');
+            }
             setCoverLetter(letter);
-            showToast('Cover letter generated!', 'success');
+            showToast('Cover letter generated successfully!', 'success');
         } catch (err: any) {
-            showToast('Failed to generate cover letter', 'error');
-            console.error(err);
+            const errorMsg = err.message || 'Failed to generate cover letter';
+            setError(errorMsg);
+            showToast(errorMsg, 'error');
+            console.error('Cover letter generation error:', err);
         } finally {
             setIsGeneratingCoverLetter(false);
         }
@@ -64,7 +76,11 @@ const EasyApplyScreen: React.FC = () => {
     };
 
     const handleTrackAndApply = () => {
-        if (job) {
+        try {
+            if (!job) {
+                setError('Job data is missing');
+                return;
+            }
             // First track the job if not already tracked
             const existingJob = getJobById(job.id);
             if (!existingJob || !('status' in existingJob)) {
@@ -74,6 +90,11 @@ const EasyApplyScreen: React.FC = () => {
             updateJobStatus(job.id, ApplicationStatus.APPLIED);
             showToast('Job marked as applied!', 'success');
             navigate('/tracker');
+        } catch (err: any) {
+            const errorMsg = err.message || 'Failed to mark job as applied';
+            setError(errorMsg);
+            showToast(errorMsg, 'error');
+            console.error('Track and apply error:', err);
         }
     };
 
@@ -88,9 +109,18 @@ const EasyApplyScreen: React.FC = () => {
     if (error) {
         return (
             <ScreenWrapper>
-                <div className="bg-red-100 text-red-700 p-4 rounded-lg text-center">
-                    <h3 className="font-bold">Error</h3>
-                    <p>{error}</p>
+                <div className="flex flex-col items-center justify-center py-12 space-y-4">
+                    <AlertTriangleIcon className="w-12 h-12 text-red-500" />
+                    <div className="bg-red-50 border border-red-300 text-red-700 p-6 rounded-lg text-center max-w-md">
+                        <h3 className="font-bold text-lg mb-2">Error Loading Job</h3>
+                        <p className="mb-4">{error}</p>
+                        <button
+                            onClick={() => navigate('/search')}
+                            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
+                        >
+                            Go Back to Search
+                        </button>
+                    </div>
                 </div>
             </ScreenWrapper>
         );

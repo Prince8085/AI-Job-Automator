@@ -94,7 +94,7 @@ const SalaryCalculatorScreen: React.FC = () => {
                 p75: Math.round(baseSalary * 1.25),
                 p90: Math.round(baseSalary * 1.5),
             },
-            companies: generateCompanySalaries(role, baseSalary, location),
+            companies: generateCompanySalaries(baseSalary, location),
         };
 
         setSalaryData(data);
@@ -138,7 +138,7 @@ const SalaryCalculatorScreen: React.FC = () => {
         return Math.round(base);
     };
 
-    const generateCompanySalaries = (role: string, base: number, loc: string): { name: string; range: string }[] => {
+    const generateCompanySalaries = (base: number, loc: string): { name: string; range: string }[] => {
         const currency = loc.includes('USA') || loc.includes('Global') ? '$' : '₹';
         const format = (n: number) => {
             if (currency === '$') return `$${(n / 100000).toFixed(0)}K`;
@@ -307,6 +307,36 @@ const SalaryCalculatorScreen: React.FC = () => {
                                         <span className="text-green-600 font-bold">{company.range}</span>
                                     </div>
                                 ))}
+                            </div>
+                        </div>
+
+                        {/* In-Hand Monthly Take-Home & Tax Breakdown */}
+                        <div className="bg-gradient-to-br from-slate-900 to-indigo-950 text-white rounded-xl shadow-lg p-6 space-y-4">
+                            <div className="flex items-center justify-between">
+                                <h3 className="font-bold text-lg text-emerald-400">💵 In-Hand Monthly Estimate</h3>
+                                <span className="text-xs bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-2.5 py-1 rounded-full font-medium">
+                                    Post-Tax In-Hand
+                                </span>
+                            </div>
+                            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 pt-2">
+                                <div className="bg-white/10 backdrop-blur-md p-4 rounded-xl">
+                                    <p className="text-xs text-slate-300">Gross Monthly</p>
+                                    <p className="text-lg font-bold text-white mt-1">
+                                        {salaryData.currency === '$' ? `$${Math.round(salaryData.avgSalary / 12 / 1000)}K/mo` : `₹${Math.round(salaryData.avgSalary / 12 / 1000)}K/mo`}
+                                    </p>
+                                </div>
+                                <div className="bg-white/10 backdrop-blur-md p-4 rounded-xl">
+                                    <p className="text-xs text-slate-300">Est. Tax / Deductions</p>
+                                    <p className="text-lg font-bold text-rose-400 mt-1">
+                                        {salaryData.currency === '$' ? `$${Math.round((salaryData.avgSalary * 0.22) / 12 / 1000)}K/mo` : `₹${Math.round((salaryData.avgSalary * 0.15) / 12 / 1000)}K/mo`}
+                                    </p>
+                                </div>
+                                <div className="col-span-2 md:col-span-1 bg-emerald-500/20 border border-emerald-500/40 p-4 rounded-xl">
+                                    <p className="text-xs text-emerald-300 font-medium">Net Monthly In-Hand</p>
+                                    <p className="text-xl font-extrabold text-emerald-400 mt-1">
+                                        {salaryData.currency === '$' ? `$${Math.round((salaryData.avgSalary * 0.78) / 12 / 1000)}K/mo` : `₹${Math.round((salaryData.avgSalary * 0.85) / 12 / 1000)}K/mo`}
+                                    </p>
+                                </div>
                             </div>
                         </div>
                     </div>

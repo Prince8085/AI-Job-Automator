@@ -31,9 +31,34 @@ const LinkedInScraperScreen: React.FC = () => {
         setLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] ${msg}`]);
     };
 
+    const validateLinkedInInput = (input: string, mode: string): boolean => {
+        const trimmed = input.trim();
+        
+        if (mode === 'hashtag') {
+            // Validate hashtag format
+            return /^#?[a-zA-Z0-9_]{2,}$/.test(trimmed);
+        } else if (mode === 'company' || mode === 'profile') {
+            // Validate URL format
+            try {
+                const url = new URL(trimmed.startsWith('http') ? trimmed : `https://${trimmed}`);
+                return url.hostname.includes('linkedin.com');
+            } catch {
+                return false;
+            }
+        }
+        return true;
+    };
+
     const handleScrape = async () => {
         if (!linkedinUrl.trim()) {
             showToast('Please enter a LinkedIn URL or hashtag', 'error');
+            return;
+        }
+
+        // Validate input format
+        const urlValid = validateLinkedInInput(linkedinUrl, searchMode);
+        if (!urlValid) {
+            showToast(`Invalid ${searchMode} format. Please check your input.`, 'error');
             return;
         }
 
@@ -54,7 +79,11 @@ const LinkedInScraperScreen: React.FC = () => {
             await new Promise(r => setTimeout(r, 2000));
 
             // Generate sample hiring posts
-            const samplePosts = generateSampleHiringPosts(searchMode);
+            const samplePosts = generateSampleHiringPosts();
+
+            if (!samplePosts || samplePosts.length === 0) {
+                throw new Error('No hiring posts found');
+            }
 
             addLog(`✅ Found ${samplePosts.length} hiring-related posts`);
             setHiringPosts(samplePosts);
@@ -62,14 +91,16 @@ const LinkedInScraperScreen: React.FC = () => {
             showToast(`Found ${samplePosts.length} hiring posts!`, 'success');
 
         } catch (error: any) {
-            addLog(`❌ Error: ${error.message}`);
-            showToast('Scraping failed', 'error');
+            const errorMsg = error.message || 'Scraping failed';
+            addLog(`❌ Error: ${errorMsg}`);
+            showToast(errorMsg, 'error');
+            console.error('LinkedIn scraping error:', error);
         } finally {
             setIsLoading(false);
         }
     };
 
-    const generateSampleHiringPosts = (mode: string): HiringPost[] => {
+    const generateSampleHiringPosts = (): HiringPost[] => {
         const companies = [
             { name: 'Google India', jobs: ['SDE Intern', 'ML Engineer', 'Product Manager'] },
             { name: 'Microsoft', jobs: ['Software Engineer', 'Azure DevOps', 'Data Scientist'] },

@@ -180,9 +180,17 @@ const MockInterviewScreen: React.FC = () => {
         const currentQuestion = questions[currentQuestionIndex];
         return (
             <div className="space-y-6">
-                <div className="p-6 bg-indigo-50 rounded-lg text-center">
+                <div className="p-6 bg-indigo-50 rounded-lg text-center relative">
                     <p className="text-sm font-semibold text-primary">Question {currentQuestionIndex + 1} of {questions.length}</p>
                     <p className="text-xl font-bold text-text-primary mt-2">{currentQuestion.question}</p>
+                    <button
+                        onClick={() => speak(currentQuestion.question)}
+                        className="mt-3 inline-flex items-center text-xs font-semibold text-primary hover:text-indigo-800 bg-white px-3 py-1.5 rounded-full shadow-sm border border-indigo-200 hover:bg-indigo-50 transition"
+                        title="Read question aloud"
+                    >
+                        <SpeakerWaveIcon className="w-4 h-4 mr-1.5" />
+                        Listen to Question
+                    </button>
                 </div>
                 
                 {interviewState === 'ASKING' && (

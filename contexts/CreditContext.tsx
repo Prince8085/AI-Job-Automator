@@ -48,10 +48,19 @@ const STORAGE_KEY = 'ai_job_automator_credits';
 const HISTORY_KEY = 'ai_job_automator_credit_history';
 
 export const CreditProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-    const [credits, setCredits] = useState<number>(() => {
+    // Keep a synchronous ref of the balance so sequential debits within the
+    // same tick (e.g. rapid clicks / tests) can't push the balance negative.
+    const getInitialCredits = (): number => {
         const saved = localStorage.getItem(STORAGE_KEY);
         return saved ? parseInt(saved, 10) : 10; // Start with 10 free credits
-    });
+    };
+    const creditsRef = React.useRef<number>(getInitialCredits());
+    const [credits, setCredits] = useState<number>(creditsRef.current);
+
+    const setBalance = (next: number) => {
+        creditsRef.current = next;
+        setCredits(next);
+    };
 
     const [transactionHistory, setTransactionHistory] = useState<Transaction[]>(() => {
         const saved = localStorage.getItem(HISTORY_KEY);
@@ -59,6 +68,31 @@ export const CreditProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     });
 
     const [totalSpent, setTotalSpent] = useState<number>(0);
+    const sessionTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+
+    // Session timeout handler - reset on activity
+    const resetSessionTimeout = React.useCallback(() => {
+        if (sessionTimeoutRef.current) {
+            clearTimeout(sessionTimeoutRef.current);
+        }
+        // Set 30-minute session timeout
+        sessionTimeoutRef.current = setTimeout(() => {
+            console.warn('Session expired due to inactivity');
+            // Persist credits before session ends
+            localStorage.setItem(STORAGE_KEY, credits.toString());
+            localStorage.setItem(HISTORY_KEY, JSON.stringify(transactionHistory));
+        }, 30 * 60 * 1000);
+    }, [credits, transactionHistory]);
+
+    // Reset timeout on user activity
+    React.useEffect(() => {
+        resetSessionTimeout();
+        return () => {
+            if (sessionTimeoutRef.current) {
+                clearTimeout(sessionTimeoutRef.current);
+            }
+        };
+    }, [resetSessionTimeout]);
 
     // Persist credits to localStorage
     useEffect(() => {
@@ -72,7 +106,7 @@ export const CreditProvider: React.FC<{ children: ReactNode }> = ({ children }) 
 
     // Add credits (after purchase)
     const addCredits = (amount: number) => {
-        setCredits(prev => prev + amount);
+        setBalance(creditsRef.current + amount);
         addTransaction('credit', amount, 'Credit Purchase');
     };
 
@@ -89,12 +123,14 @@ export const CreditProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     // Use credits for an action
     const useCredits = (action: CreditAction, customAmount?: number): boolean => {
         const cost = customAmount || CREDIT_COSTS[action];
+        const balance = creditsRef.current;
 
-        if (credits < cost) {
+        if (balance < cost) {
+            console.warn(`Insufficient credits: ${balance} available, ${cost} required for ${action}`);
             return false; // Not enough credits
         }
 
-        setCredits(prev => prev - cost);
+        setBalance(balance - cost);
         setTotalSpent(prev => prev + cost);
         addTransaction('debit', cost, action);
         return true;
@@ -169,13 +205,13 @@ export const CreditButton: React.FC<{
     className?: string;
     disabled?: boolean;
 }> = ({ action, onClick, children, className = '', disabled = false }) => {
-    const { hasEnoughCredits, getCreditCost, useCredits } = useCredits();
+    const { hasEnoughCredits, getCreditCost, useCredits: deductCredits } = useCredits();
 
     const cost = getCreditCost(action);
     const canAfford = hasEnoughCredits(action);
 
     const handleClick = () => {
-        if (canAfford && useCredits(action)) {
+        if (canAfford && deductCredits(action)) {
             onClick();
         }
     };

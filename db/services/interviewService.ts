@@ -115,14 +115,17 @@ export class InterviewService {
       const questions = await this.getInterviewQuestions(userId, jobId);
       
       // Group questions by category
-      const categorizedQuestions = questions.reduce((acc, question) => {
-        const category = question.category || 'general';
-        if (!acc[category]) {
-          acc[category] = [];
-        }
-        acc[category].push(question);
-        return acc;
-      }, {} as Record<string, typeof questions>);
+      const categorizedQuestions = questions.reduce(
+        (acc: Record<string, unknown[]>, question: any) => {
+          const category = question.category || 'general';
+          if (!acc[category]) {
+            acc[category] = [];
+          }
+          acc[category].push(question);
+          return acc;
+        },
+        {} as Record<string, unknown[]>
+      );
 
       return categorizedQuestions;
     } catch (error) {

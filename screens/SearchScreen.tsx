@@ -32,6 +32,7 @@ const SearchScreen: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [location, setLocation] = useState('');
   const [timeFilter, setTimeFilter] = useState<TimeFilter>(TimeFilter.ANY_TIME);
+  const [hasSubmitted, setHasSubmitted] = useState(false);
 
   useEffect(() => {
     // This effect ensures that if the component unmounts,
@@ -54,8 +55,12 @@ const SearchScreen: React.FC = () => {
     navigate(`/job/${job.id}`, { state: { jobData: job } });
   };
 
+  const isSearchValid = searchTerm.trim().length >= 2 || location.trim().length >= 2;
+
   const handleLiveSearch = () => {
-    performLiveSearch(searchTerm, location, timeFilter);
+    setHasSubmitted(true);
+    if (!isSearchValid) return;
+    performLiveSearch(searchTerm.trim(), location.trim(), timeFilter);
   };
 
   return (
@@ -68,7 +73,10 @@ const SearchScreen: React.FC = () => {
               placeholder="Job title or company"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleLiveSearch();
+              }}
+              className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent ${hasSubmitted && searchTerm.trim().length > 0 && searchTerm.trim().length < 2 ? 'border-red-400 bg-red-50/40' : 'border-slate-300'}`}
               aria-label="Search by job title or company"
             />
             <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-text-secondary" />
@@ -79,7 +87,10 @@ const SearchScreen: React.FC = () => {
               placeholder="Location (e.g., city, remote)"
               value={location}
               onChange={(e) => setLocation(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleLiveSearch();
+              }}
+              className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent ${hasSubmitted && location.trim().length > 0 && location.trim().length < 2 ? 'border-red-400 bg-red-50/40' : 'border-slate-300'}`}
               aria-label="Search by location"
             />
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-text-secondary"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" /><circle cx="12" cy="10" r="3" /></svg>
@@ -101,19 +112,27 @@ const SearchScreen: React.FC = () => {
           </div>
           <button
             onClick={handleLiveSearch}
-            disabled={isSearching}
-            className="mt-4 w-full flex items-center justify-center py-3 px-6 text-white font-bold bg-gradient-primary rounded-lg hover:opacity-90 transition disabled:opacity-50 disabled:cursor-wait"
+            disabled={isSearching || !isSearchValid}
+            className="mt-4 w-full flex items-center justify-center py-3 px-6 text-white font-bold bg-gradient-primary rounded-lg hover:opacity-90 transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <SparklesIcon className="w-5 h-5 mr-2" />
-            {isSearching ? 'Searching FREE APIs...' : '🔍 Search Real Jobs (FREE & Unlimited)'}
+            <SparklesIcon className={`w-5 h-5 mr-2 ${isSearching ? 'animate-pulse' : ''}`} />
+            {isSearching ? 'Searching trusted sources...' : '🔍 Search Real Jobs (FREE & Unlimited)'}
           </button>
+          {hasSubmitted && !isSearchValid && (
+            <p className="mt-2 text-sm text-red-600">
+              Enter at least 2 characters in job title/company or location.
+            </p>
+          )}
         </div>
 
         {isSearching && (
           <div className="space-y-4">
-            <h3 className="text-xl font-bold text-text-primary mb-4">
+            <h3 className="text-xl font-bold text-text-primary mb-1">
               Finding Live Jobs...
             </h3>
+            <p className="text-sm text-text-secondary">
+              Checking multiple trusted sources and ranking by relevance.
+            </p>
             {[...Array(3)].map((_, i) => <JobCardSkeleton key={i} />)}
           </div>
         )}
